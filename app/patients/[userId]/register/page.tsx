@@ -4,7 +4,7 @@ import { getPatient, getUser } from "@/lib/actions/patient.action";
 import Image from "next/image";
 import { redirect } from "next/navigation";
 
-
+import * as Sentry from "@sentry/nextjs";
 
 const Register = async ({ params: { userId } }: SearchParamProps) => {
   const user = await getUser(userId);
@@ -15,6 +15,8 @@ const Register = async ({ params: { userId } }: SearchParamProps) => {
   if (!user) {
   redirect("/error"); 
 }
+
+Sentry.captureMessage(`User viewed register page: ${user?.name}`);
 
   return (
     <div className="flex h-screen max-h-screen">

@@ -5,13 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Doctors } from "@/constants";;
 import { formatDateTime } from "@/lib/utils";
 import { getAppointment } from "@/lib/actions/appointment.actions";
+import { Appointment } from "@/types/appwrite.types";
 
 const RequestSuccess = async ({
   searchParams,
   params: { userId },
 }: SearchParamProps) => {
- const appointmentId = (searchParams?.appointmentId as string) || "";
-const appointment = await getAppointment(appointmentId);
+  const appointmentId = (searchParams?.appointmentId as string) || "";
+  const appointment = await getAppointment(appointmentId) as Appointment;
 
 if (!appointment) {
   return (
