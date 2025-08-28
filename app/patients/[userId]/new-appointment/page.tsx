@@ -1,9 +1,27 @@
 import { AppointmentForm } from "@/components/forms/AppointmentForm";
-import { getPatient } from "@/lib/actions/patient.action";
+import { getPatient, getPatientAppointment } from "@/lib/actions/patient.action";
 import Image from "next/image";
 
-const Appointment = async ({ params: { userId } }: SearchParamProps) => {
-  const patient = await getPatient(userId);
+interface SearchParamProps {
+  params: { userId: string };
+  searchParams?: { [key: string]: string | string[] | undefined };
+}
+
+const Appointment = async ({ params: { userId }, searchParams }: SearchParamProps) => {
+  let patient;
+
+  // Use getPatientAppointment if navigating from success page (appointmentId present)
+    patient = await getPatientAppointment(userId);
+    if(patient == null) {
+      patient = await getPatient(userId);
+    }
+
+  //console.log("Fetched patient:", patient); 
+
+  // Redirect if patient is not found or patient.$id is undefined
+  if (!patient || !patient.$id) {
+    console.error(`Patient not found or invalid for userId: ${userId}`);
+  }
 
   return (
     <div className="flex h-screen max-h-screen">
@@ -17,13 +35,12 @@ const Appointment = async ({ params: { userId } }: SearchParamProps) => {
             className="mb-12 h-10 w-fit"
           />
 
-          {patient && (
-            <AppointmentForm
-              userId={userId}
-              patientId={patient.$id} 
-              type="create"
-            />
-          )}
+          <AppointmentForm
+            userId={userId}
+            patientId={patient?.$id! || ""} 
+            type="create"
+            // appointment prop is optional, omit if not needed
+          />
 
           <p className="copyright mt-10 py-12">© 2025 CarePulse</p>
         </div>

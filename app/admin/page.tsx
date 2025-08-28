@@ -39,19 +39,25 @@ const AdminPage = async () => {
             type="appointments"
             count={appointments?.scheduledCount || 0}
             label="Scheduled appointments"
-            icon={"/assets/icons/appointments.svg"}
+            icon="/assets/icons/appointments.svg"
           />
           <StatCard
             type="pending"
             count={appointments?.pendingCount || 0}
             label="Pending appointments"
-            icon={"/assets/icons/pending.svg"}
+            icon="/assets/icons/pending.svg"
           />
           <StatCard
             type="cancelled"
             count={appointments?.cancelledCount || 0}
             label="Cancelled appointments"
-            icon={"/assets/icons/cancelled.svg"}
+            icon="/assets/icons/cancelled.svg"
+          />
+          <StatCard
+            type="completed"
+            count={appointments?.completedCount || 0}
+            label="Completed appointments"
+            icon="/assets/icons/completed.svg"
           />
         </section>
 

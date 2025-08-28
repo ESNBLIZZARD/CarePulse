@@ -1,4 +1,3 @@
-
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -66,3 +65,7 @@ export function encryptKey(passkey: string) {
 export function decryptKey(passkey: string) {
   return atob(passkey);
 }
+// const router = useRouter();
+// export const handleBack = () => {
+//     router.back(); // Navigate back in history
+//   };

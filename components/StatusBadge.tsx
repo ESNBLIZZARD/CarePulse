@@ -1,33 +1,28 @@
-import { StatusIcon } from "@/constants";
-import clsx from "clsx";
-import Image from "next/image";
+interface StatusBadgeProps {
+  status: Status;
+}
 
+export const StatusBadge = ({ status }: StatusBadgeProps) => {
+  const getStatusStyles = (status: Status) => {
+    switch (status) {
+      case "scheduled":
+        return "bg-green-500";
+      case "pending":
+        return "bg-yellow-500";
+      case "cancelled":
+        return "bg-red-500";
+      case "completed":
+        return "bg-blue-500";
+      default:
+        return "bg-gray-500";
+    }
+  };
 
-export const StatusBadge = ({ status }: { status: Status }) => {
   return (
     <div
-      className={clsx("status-badge", {
-        "bg-green-600": status === "scheduled",
-        "bg-blue-600": status === "pending",
-        "bg-red-600": status === "cancelled",
-      })}
+      className={`px-2 py-1 rounded-full text-center text-white text-14-medium ${getStatusStyles(status)}`}
     >
-      <Image
-        src={StatusIcon[status]}
-        alt="doctor"
-        width={24}
-        height={24}
-        className="h-fit w-3"
-      />
-      <p
-        className={clsx("text-12-semibold capitalize", {
-          "text-green-500": status === "scheduled",
-          "text-blue-500": status === "pending",
-          "text-red-500": status === "cancelled",
-        })}
-      >
-        {status}
-      </p>
+      {status.charAt(0).toUpperCase() + status.slice(1)}
     </div>
   );
 };
