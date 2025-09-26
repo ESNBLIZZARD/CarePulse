@@ -3,18 +3,16 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Dispatch, SetStateAction, useState } from "react";
+import { Dispatch, SetStateAction, useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-
+import { useQueryClient } from "@tanstack/react-query"; 
 import { SelectItem } from "@/components/ui/select";
-import { Doctors } from "@/constants";
+import { getDoctors } from "@/lib/actions/doctor.actions";
 import { createAppointment, updateAppointment } from "@/lib/actions/appointment.actions";
 import { getAppointmentSchema } from "@/lib/validation";
-import { Appointment } from "@/types/appwrite.types";
-
+import { Appointment, Doctor } from "@/types/appwrite.types";
 import "react-datepicker/dist/react-datepicker.css";
-
 import CustomFormField, { FormFieldType } from "../CustomFormField";
 import SubmitButton from "../SubmitButton";
 import { Form } from "../ui/form";
@@ -34,7 +32,10 @@ export const AppointmentForm = ({
   setOpen?: Dispatch<SetStateAction<boolean>>;
 }) => {
   const router = useRouter();
+  const queryClient = useQueryClient(); 
   const [isLoading, setIsLoading] = useState(false);
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [isLoadingDoctors, setIsLoadingDoctors] = useState(true);
 
   const AppointmentFormValidation = getAppointmentSchema(type);
 
@@ -48,6 +49,22 @@ export const AppointmentForm = ({
       cancellationReason: appointment?.cancellationReason || "",
     },
   });
+
+  // Fetch doctors on mount
+  useEffect(() => {
+    const fetchDoctors = async () => {
+      try {
+        setIsLoadingDoctors(true);
+        const allDoctors = await getDoctors();
+        setDoctors(allDoctors);
+      } catch (error) {
+        console.error("Failed to fetch doctors:", error);
+      } finally {
+        setIsLoadingDoctors(false);
+      }
+    };
+    fetchDoctors();
+  }, []);
 
   const onSubmit = async (values: z.infer<typeof AppointmentFormValidation>) => {
     setIsLoading(true);
@@ -79,7 +96,12 @@ export const AppointmentForm = ({
 
         if (newAppointment) {
           form.reset();
-          router.push(`/patients/${patientId}/new-appointment/success?appointmentId=${newAppointment.$id}`);
+
+          queryClient.invalidateQueries({ queryKey: ["appointments"] });
+
+          router.push(
+            `/patients/${patientId}/new-appointment/success?appointmentId=${newAppointment.$id}`
+          );
         }
       } else if (appointment) {
         const updatedAppointment = await updateAppointment({
@@ -98,6 +120,8 @@ export const AppointmentForm = ({
         if (updatedAppointment) {
           setOpen?.(false);
           form.reset();
+
+          queryClient.invalidateQueries({ queryKey: ["appointments"] });
         }
       }
     } catch (error) {
@@ -117,11 +141,16 @@ export const AppointmentForm = ({
   return (
     <>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 space-y-6">
+        <form
+          onSubmit={form.handleSubmit(onSubmit)}
+          className="flex-1 space-y-6"
+        >
           {type === "create" && (
             <section className="mb-12 space-y-4">
               <h1 className="header">New Appointment</h1>
-              <p className="text-dark-700">Request a new appointment in 10 seconds.</p>
+              <p className="text-dark-700">
+                Request a new appointment in 10 seconds.
+              </p>
             </section>
           )}
 
@@ -134,20 +163,35 @@ export const AppointmentForm = ({
                 label="Doctor"
                 placeholder="Select a doctor"
               >
-                {Doctors.map((doctor, i) => (
-                  <SelectItem key={doctor.name + i} value={doctor.name}>
-                    <div className="flex cursor-pointer items-center gap-2">
-                      <Image
-                        src={doctor.image}
-                        width={32}
-                        height={32}
-                        alt={doctor.name}
-                        className="rounded-full border border-dark-500"
-                      />
-                      <p>{doctor.name}</p>
-                    </div>
+                {isLoadingDoctors ? (
+                  <SelectItem value="loading" disabled>
+                    Loading doctors...
                   </SelectItem>
-                ))}
+                ) : (
+                  doctors.map((doctor, i) => (
+                    <SelectItem
+                      key={doctor.$id || doctor.name + i}
+                      value={doctor.name}
+                    >
+                      <div className="flex cursor-pointer items-center gap-2">
+                        <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-300">
+                          {doctor.imageUrl ? (
+                            <Image
+                              src={doctor.imageUrl}
+                              alt={doctor.name}
+                              width={40}
+                              height={40}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400 text-xs" />
+                          )}
+                        </div>
+                        <p className="text-sm">{doctor.name}</p>
+                      </div>
+                    </SelectItem>
+                  ))
+                )}
               </CustomFormField>
 
               <CustomFormField
@@ -159,7 +203,11 @@ export const AppointmentForm = ({
                 dateFormat="MM/dd/yyyy - h:mm aa"
               />
 
-              <div className={`flex flex-col gap-6 ${type === "create" && "xl:flex-row"}`}>
+              <div
+                className={`flex flex-col gap-6 ${
+                  type === "create" && "xl:flex-row"
+                }`}
+              >
                 <CustomFormField
                   fieldType={FormFieldType.TEXTAREA}
                   control={form.control}
@@ -191,14 +239,22 @@ export const AppointmentForm = ({
             />
           )}
 
-          <SubmitButton isLoading={isLoading} className={`${type === "cancel" ? "shad-danger-btn" : "shad-primary-btn"} w-full`}>
+          <SubmitButton
+            isLoading={isLoading}
+            className={`${
+              type === "cancel" ? "shad-danger-btn" : "shad-primary-btn"
+            } w-full`}
+          >
             {buttonLabel}
           </SubmitButton>
         </form>
       </Form>
 
       {type === "create" && patientId && (
-        <Link href={`/appointments/${patientId}`} className="text-xs hover:underline text-dark-700 mt-2 block">
+        <Link
+          href={`/appointments/${patientId}`}
+          className="text-xs hover:underline text-dark-700 mt-2 block"
+        >
           My Appointments
         </Link>
       )}

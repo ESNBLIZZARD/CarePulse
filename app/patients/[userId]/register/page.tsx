@@ -1,10 +1,12 @@
-
 import RegisterForm from "@/components/forms/RegisterForm";
 import { getPatient, getUser } from "@/lib/actions/patient.action";
 import Image from "next/image";
 import { redirect } from "next/navigation";
-
 import * as Sentry from "@sentry/nextjs";
+
+interface SearchParamProps {
+  params: { userId: string };
+}
 
 const Register = async ({ params: { userId } }: SearchParamProps) => {
   const user = await getUser(userId);
@@ -12,11 +14,17 @@ const Register = async ({ params: { userId } }: SearchParamProps) => {
 
   if (patient) redirect(`/patients/${userId}/new-appointment`);
   console.log("User:", user);
-  if (!user) {
-  redirect("/error"); 
-}
+  if (!user) redirect("/error");
 
-Sentry.captureMessage(`User viewed register page: ${user?.name}`);
+  // Transform user to a serializable plain object
+  const serializableUser = {
+    $id: user.$id,
+    name: user.name,
+    email: user.email,
+    phone: user.phone,
+  };
+
+  Sentry.captureMessage(`User viewed register page: ${user?.name}`);
 
   return (
     <div className="flex h-screen max-h-screen">
@@ -30,7 +38,7 @@ Sentry.captureMessage(`User viewed register page: ${user?.name}`);
             className="mb-12 h-10 w-fit"
           />
 
-          <RegisterForm user={user} />
+          <RegisterForm user={serializableUser} />
 
           <p className="copyright py-12">© 2025 CarePulse</p>
         </div>

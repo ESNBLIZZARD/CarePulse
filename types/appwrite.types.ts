@@ -35,3 +35,16 @@ export interface Appointment extends Models.Document {
   userId: string;
   cancellationReason: string | null;
 }
+
+
+export interface Doctor {
+  $id?: string;
+  name: string;
+  image?: string | FormData;
+  imageId?: string;
+  imageUrl?: string;
+  specialization?: string;
+  experience?: number;
+  email?: string;
+  phone?: string;
+}

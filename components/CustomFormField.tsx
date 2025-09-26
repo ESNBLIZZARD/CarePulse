@@ -1,10 +1,8 @@
-/* eslint-disable no-unused-vars */
 import { E164Number } from "libphonenumber-js/core";
 import Image from "next/image";
 import ReactDatePicker from "react-datepicker";
 import { Control } from "react-hook-form";
 import PhoneInput from "react-phone-number-input";
-
 import { Checkbox } from "./ui/checkbox";
 import {
   FormControl,
@@ -40,6 +38,7 @@ interface CustomProps {
   children?: React.ReactNode;
   renderSkeleton?: (field: any) => React.ReactNode;
   fieldType: FormFieldType;
+  className?: string;
 }
 
 const RenderInput = ({ field, props }: { field: any; props: CustomProps }) => {
@@ -76,20 +75,21 @@ const RenderInput = ({ field, props }: { field: any; props: CustomProps }) => {
           />
         </FormControl>
       );
-    case FormFieldType.PHONE_INPUT:
-      return (
-        <FormControl>
-          <PhoneInput
-            defaultCountry="IN"
-            placeholder={props.placeholder}
-            international
-            withCountryCallingCode
-            value={field.value as E164Number | undefined}
-            onChange={field.onChange}
-            className="input-phone"
-          />
-        </FormControl>
-      );
+   case FormFieldType.PHONE_INPUT:
+  console.log("Phone Input Field:", field, "Props:", props); // Debug
+  return (
+    <FormControl>
+      <PhoneInput
+        defaultCountry="IN"
+        placeholder={props.placeholder}
+        international
+        withCountryCallingCode
+        value={field.value as E164Number | undefined}
+        onChange={field.onChange}
+        className={props.className || "input-phone"}
+      />
+    </FormControl>
+  );
     case FormFieldType.CHECKBOX:
       return (
         <FormControl>

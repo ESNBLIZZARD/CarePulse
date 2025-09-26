@@ -1,21 +1,20 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { ID, Models, Query } from "node-appwrite";
-
-import { Appointment, Patient } from "@/types/appwrite.types";
-
+import { ID, Models, Query, Storage } from "node-appwrite";
+import { Appointment, Doctor, Patient } from "@/types/appwrite.types";
 import {
   APPOINTMENT_COLLECTION_ID,
   DATABASE_ID,
   databases,
+  DOCTOR_COLLECTION_ID,
   messaging,
   PATIENT_COLLECTION_ID,
 } from "../appwrite.config";
 import { formatDateTime, parseStringify } from "../utils";
 
 // Define the return type for getRecentAppointmentList
-interface AppointmentList {
+export interface AppointmentList {
   totalCount: number;
   scheduledCount: number;
   pendingCount: number;
@@ -23,6 +22,7 @@ interface AppointmentList {
   completedCount: number;
   documents: Appointment[];
 }
+
 
 // CREATE APPOINTMENT
 export const createAppointment = async (
@@ -47,58 +47,66 @@ export const createAppointment = async (
   }
 };
 
-// GET RECENT APPOINTMENTS
+//GET RECENT APPOINTMENT
+const DOCTOR_BUCKET_ID = process.env.NEXT_PUBLIC_BUCKET_ID;
+
 export const getRecentAppointmentList = async (): Promise<AppointmentList | undefined> => {
   try {
-    const appointments = await databases.listDocuments(
+    const appointmentsRes = await databases.listDocuments(
       DATABASE_ID!,
       APPOINTMENT_COLLECTION_ID!,
       [Query.orderDesc("$createdAt")]
     );
+    const appointments = appointmentsRes.documents as Appointment[];
 
-    const initialCounts = {
-      scheduledCount: 0,
-      pendingCount: 0,
-      cancelledCount: 0,
-      completedCount: 0,
-    };
+    const doctorsRes = await databases.listDocuments(DATABASE_ID!, DOCTOR_COLLECTION_ID!);
+    const doctors: Doctor[] = doctorsRes.documents.map((doc: any) => ({
+      $id: doc.$id,
+      name: doc.name,
+      imageId: doc.imageId,
+    }));
 
-    const counts = (appointments.documents as Appointment[]).reduce(
-      (acc, appointment) => {
-        switch (appointment.status) {
-          case "scheduled":
-            acc.scheduledCount++;
-            break;
-          case "pending":
-            acc.pendingCount++;
-            break;
-          case "cancelled":
-            acc.cancelledCount++;
-            break;
-          case "completed":
-            acc.completedCount++;
-            break;
-        }
-        return acc;
-      },
-      initialCounts
-    );
+    const appointmentsWithDoctor: (Appointment & { doctor: Doctor })[] = appointments.map(appt => {
+      const doctor = doctors.find(d => d.name === appt.primaryPhysician);
+
+      const imageUrl = doctor?.imageId
+        ? `${process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT}/storage/buckets/${DOCTOR_BUCKET_ID}/files/${doctor.imageId}/view?project=${process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID}`
+        : undefined;
+
+      return {
+        ...appt,
+        doctor: {
+          $id: doctor?.$id,
+          name: doctor?.name || appt.primaryPhysician,
+          imageUrl,
+        },
+      };
+    });
+
+    const initialCounts = { scheduledCount: 0, pendingCount: 0, cancelledCount: 0, completedCount: 0 };
+    const counts = appointmentsWithDoctor.reduce((acc, appointment) => {
+      switch (appointment.status) {
+        case "scheduled": acc.scheduledCount++; break;
+        case "pending": acc.pendingCount++; break;
+        case "cancelled": acc.cancelledCount++; break;
+        case "completed": acc.completedCount++; break;
+      }
+      return acc;
+    }, initialCounts);
 
     const data: AppointmentList = {
-      totalCount: appointments.total,
+      totalCount: appointmentsRes.total,
       scheduledCount: counts.scheduledCount,
       pendingCount: counts.pendingCount,
       cancelledCount: counts.cancelledCount,
       completedCount: counts.completedCount,
-      documents: appointments.documents as Appointment[],
+      documents: appointmentsWithDoctor,
     };
 
     return parseStringify(data);
+
   } catch (error) {
-    console.error(
-      "An error occurred while retrieving the recent appointments:",
-      error
-    );
+    console.error("Error fetching recent appointments:", error);
   }
 };
 
@@ -134,13 +142,18 @@ export const updateAppointment = async ({
         appointmentId
       )) as Appointment;
       if (currentAppointment.status !== "scheduled") {
-        throw new Error("Only scheduled appointments can be marked as completed");
+        throw new Error(
+          "Only scheduled appointments can be marked as completed"
+        );
       }
     }
 
     // Filter out Appwrite metadata and include only valid fields
     const updateData = {
-      patientId: typeof appointment.patientId === "string" ? appointment.patientId : appointment.patientId?.$id,
+      patientId:
+        typeof appointment.patientId === "string"
+          ? appointment.patientId
+          : appointment.patientId?.$id,
       status: appointment.status,
       schedule: appointment.schedule,
       primaryPhysician: appointment.primaryPhysician,
@@ -218,7 +231,10 @@ export async function getAppointmentsWithPatientInfo(patientId: string) {
 
     return { appointments: documents, patientsMap };
   } catch (error) {
-    console.error("An error occurred while retrieving appointments and patient info:", error);
+    console.error(
+      "An error occurred while retrieving appointments and patient info:",
+      error
+    );
     throw error;
   }
 }
@@ -233,13 +249,18 @@ export async function getAppointmentsByPatientId(patientId: string) {
     );
     return appointments.documents as Appointment[];
   } catch (error) {
-    console.error("An error occurred while retrieving appointments by patientId:", error);
+    console.error(
+      "An error occurred while retrieving appointments by patientId:",
+      error
+    );
     throw error;
   }
 }
 
 // GET SINGLE APPOINTMENT
-export async function getAppointment(appointmentId: string): Promise<Appointment | null> {
+export async function getAppointment(
+  appointmentId: string
+): Promise<Appointment | null> {
   try {
     const appointment = (await databases.getDocument(
       DATABASE_ID!,

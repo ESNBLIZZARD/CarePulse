@@ -3,77 +3,72 @@
 import { ColumnDef } from "@tanstack/react-table";
 import Image from "next/image";
 
-import { Doctors } from "@/constants";
 import { formatDateTime } from "@/lib/utils";
-import { Appointment } from "@/types/appwrite.types";
-import { updateAppointment } from "@/lib/actions/appointment.actions";
+import { Appointment, Doctor } from "@/types/appwrite.types";
 
 import { AppointmentModal } from "../AppointmentModal";
 import { StatusBadge } from "../StatusBadge";
 
-export const columns: ColumnDef<Appointment>[] = [
+export const columns: ColumnDef<Appointment & { doctor: Doctor }>[] = [
   {
     header: "#",
-    cell: ({ row }) => {
-      return <p className="text-14-medium">{row.index + 1}</p>;
-    },
+    cell: ({ row }) => <p className="text-14-medium">{row.index + 1}</p>,
   },
   {
     accessorKey: "patient",
     header: "Patient",
-    cell: ({ row }) => {
-      const appointment = row.original;
-      return <p className="text-14-medium">{appointment.patient.name}</p>;
-    },
+    cell: ({ row }) => <p className="text-14-medium">{row.original.patient.name}</p>,
   },
   {
     accessorKey: "status",
     header: "Status",
-    cell: ({ row }) => {
-      const appointment = row.original;
-      return (
-        <div className="min-w-[115px]">
-          <StatusBadge status={appointment.status} />
-        </div>
-      );
-    },
+    cell: ({ row }) => (
+      <div className="min-w-[115px]">
+        <StatusBadge status={row.original.status} />
+      </div>
+    ),
   },
   {
     accessorKey: "schedule",
     header: "Appointment",
-    cell: ({ row }) => {
-      const appointment = row.original;
-      return (
-        <p className="text-14-regular min-w-[100px]">
-          {formatDateTime(appointment.schedule).dateTime}
-        </p>
-      );
-    },
+    cell: ({ row }) => (
+      <p className="text-14-regular min-w-[100px]">
+        {formatDateTime(row.original.schedule).dateTime}
+      </p>
+    ),
   },
   {
-    accessorKey: "primaryPhysician",
+    accessorKey: "doctor",
     header: "Doctor",
     cell: ({ row }) => {
-      const appointment = row.original;
+      const doctor = row.original.doctor;
 
-      const doctor = Doctors.find(
-        (doctor) => doctor.name === appointment.primaryPhysician
-      );
+      const imageSrc =
+        doctor?.imageUrl || (typeof doctor?.image === "string" ? doctor.image : undefined);
 
       return (
         <div className="flex items-center gap-3">
-          <Image
-            src={doctor?.image!}
-            alt="doctor"
-            width={100}
-            height={100}
-            className="size-8"
-          />
+          {imageSrc ? (
+            <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-300">
+              <Image
+                src={imageSrc}
+                alt={doctor?.name || "Doctor"}
+                width={40}
+                height={40}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          ) : (
+            <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center text-sm text-gray-500">
+              {doctor?.name?.charAt(0)}
+            </div>
+          )}
           <p className="whitespace-nowrap">Dr. {doctor?.name}</p>
         </div>
       );
     },
   },
+
   {
     id: "actions",
     header: () => <div className="pl-4">Actions</div>,
@@ -99,7 +94,7 @@ export const columns: ColumnDef<Appointment>[] = [
               appointment={appointment}
               type="complete"
               title="Complete Appointment"
-              description={`Are you sure you want to mark the appointment with Dr. ${appointment.primaryPhysician} as completed?`}
+              description={`Are you sure you want to mark the appointment with Dr. ${appointment.doctor?.name} as completed?`}
             />
           )}
           {appointment.status === "cancelled" && (
@@ -122,8 +117,10 @@ export const columns: ColumnDef<Appointment>[] = [
               description="Are you sure you want to cancel your appointment?"
             />
           )}
+
           {/* // UPLOAD REPORT-------- */}
-          {/* {appointment.status === "completed" && (
+          {/*
+          {appointment.status === "completed" && (
             <div className="flex items-center gap-2">
               <input
                 type="file"
@@ -147,7 +144,8 @@ export const columns: ColumnDef<Appointment>[] = [
                 Upload
               </button>
             </div>
-          )} */}
+          )}
+          */}
         </div>
       );
     },

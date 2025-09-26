@@ -2,10 +2,16 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
-import { Doctors } from "@/constants";;
+import { getDoctors } from "@/lib/actions/doctor.actions";
 import { formatDateTime } from "@/lib/utils";
 import { getAppointment } from "@/lib/actions/appointment.actions";
-import { Appointment } from "@/types/appwrite.types";
+import { Appointment, Doctor } from "@/types/appwrite.types";
+
+// Define the SearchParamProps type if not already defined
+interface SearchParamProps {
+  searchParams: { appointmentId?: string };
+  params: { userId: string };
+}
 
 const RequestSuccess = async ({
   searchParams,
@@ -14,17 +20,19 @@ const RequestSuccess = async ({
   const appointmentId = (searchParams?.appointmentId as string) || "";
   const appointment = await getAppointment(appointmentId) as Appointment;
 
-if (!appointment) {
-  return (
-    <div className="flex h-screen items-center justify-center">
-      <p className="text-red-500">Appointment not found.</p>
-    </div>
-  );
-}
+  if (!appointment) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <p className="text-red-500">Appointment not found.</p>
+      </div>
+    );
+  }
 
-const doctor = Doctors.find(
-  (doctor) => doctor.name === appointment.primaryPhysician
-);
+  // Fetch doctors dynamically
+  const doctors = await getDoctors();
+  const doctor = doctors.find(
+    (doctor: Doctor) => doctor.name === appointment.primaryPhysician
+  );
 
   return (
     <div className=" flex h-screen max-h-screen px-[5%]">
@@ -56,14 +64,20 @@ const doctor = Doctors.find(
         <section className="request-details">
           <p>Requested appointment details: </p>
           <div className="flex items-center gap-3">
-            <Image
-              src={doctor?.image!}
-              alt="doctor"
-              width={100}
-              height={100}
-              className="size-6"
-            />
-            <p className="whitespace-nowrap">Dr. {doctor?.name}</p>
+            {doctor?.imageUrl ? (
+              <Image
+                src={doctor.imageUrl}
+                alt="doctor"
+                width={100}
+                height={100}
+                className="size-6 rounded-full"
+              />
+            ) : (
+              <div className="size-6 bg-gray-200 rounded-full flex items-center justify-center text-gray-400 text-xs">
+                No Image
+              </div>
+            )}
+            <p className="whitespace-nowrap">Dr. {doctor?.name || appointment.primaryPhysician || "Not specified"}</p>
           </div>
           <div className="flex gap-2">
             <Image
@@ -82,7 +96,7 @@ const doctor = Doctors.find(
           </Link>
         </Button>
 
-        <p className="copyright">© 2025 CarePluse</p>
+        <p className="copyright">© 2025 CarePulse</p>
       </div>
     </div>
   );

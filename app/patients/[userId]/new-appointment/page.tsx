@@ -10,15 +10,13 @@ interface SearchParamProps {
 const Appointment = async ({ params: { userId }, searchParams }: SearchParamProps) => {
   let patient;
 
-  // Use getPatientAppointment if navigating from success page (appointmentId present)
-    patient = await getPatientAppointment(userId);
-    if(patient == null) {
-      patient = await getPatient(userId);
-    }
+  patient = await getPatientAppointment(userId);
+  if (patient == null) {
+    patient = await getPatient(userId);
+  }
 
   //console.log("Fetched patient:", patient); 
 
-  // Redirect if patient is not found or patient.$id is undefined
   if (!patient || !patient.$id) {
     console.error(`Patient not found or invalid for userId: ${userId}`);
   }
@@ -39,7 +37,7 @@ const Appointment = async ({ params: { userId }, searchParams }: SearchParamProp
             userId={userId}
             patientId={patient?.$id! || ""} 
             type="create"
-            // appointment prop is optional, omit if not needed
+            // doctors={doctors}
           />
 
           <p className="copyright mt-10 py-12">© 2025 CarePulse</p>

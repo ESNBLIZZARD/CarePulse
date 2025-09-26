@@ -1,5 +1,7 @@
 import AppointmentList from "@/components/AppointmentList";
+import { getDoctors } from "@/lib/actions/doctor.actions";
 import { getAppointmentsWithPatientInfo } from "@/lib/actions/patient.action";
+
 
 export default async function PatientAppointments({
   params: { patientId },
@@ -12,11 +14,24 @@ export default async function PatientAppointments({
 
   try {
     console.log("Fetching appointments for patientId in page:", patientId);
-    const { appointments, patientsMap } = await getAppointmentsWithPatientInfo(patientId);
+    
+    // Fetch both appointments and doctors data
+    const [{ appointments, patientsMap }, doctors] = await Promise.all([
+      getAppointmentsWithPatientInfo(patientId),
+      getDoctors() // Use your existing getDoctors function
+    ]);
+    
     console.log("Appointments in Page:", appointments);
     console.log("Patients Map in Page:", patientsMap);
+    console.log("Doctors in Page:", doctors); // Debug log to see doctors data
 
-    return <AppointmentList appointments={appointments} patients={patientsMap} />;
+    return (
+      <AppointmentList 
+        appointments={appointments} 
+        patients={patientsMap} 
+        doctors={doctors} // Pass the doctors data to AppointmentList
+      />
+    );
   } catch (error) {
     console.error("Failed to load appointments:", error);
     return (

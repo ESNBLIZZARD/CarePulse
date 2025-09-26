@@ -3,29 +3,38 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-
 import { Form, FormControl } from "@/components/ui/form";
 import { Label } from "@/components/ui/label";
 import { SelectItem } from "@/components/ui/select";
-
 import { PatientFormValidation } from "@/lib/validation";
-
 import "react-datepicker/dist/react-datepicker.css";
 import "react-phone-number-input/style.css";
 import CustomFormField, { FormFieldType } from "../CustomFormField";
-
 import SubmitButton from "../SubmitButton";
 import { registerPatient } from "@/lib/actions/patient.action";
-import { Doctors, GenderOptions, IdentificationTypes, PatientFormDefaultValues } from "@/constants";
+import { GenderOptions, IdentificationTypes, PatientFormDefaultValues } from "@/constants";
 import { FileUploader } from "../FileUploader";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
+import { getDoctors } from "@/lib/actions/doctor.actions";
+import { Doctor } from "@/types/appwrite.types";
+
+// Define a serializable User interface
+interface User {
+  $id: string;
+  name: string;
+  email: string;
+  phone: string;
+}
 
 const RegisterForm = ({ user }: { user: User }) => {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [isLoadingDoctors, setIsLoadingDoctors] = useState(true);
+  const [doctorError, setDoctorError] = useState<string | null>(null);
 
   const form = useForm<z.infer<typeof PatientFormValidation>>({
     resolver: zodResolver(PatientFormValidation),
@@ -37,15 +46,30 @@ const RegisterForm = ({ user }: { user: User }) => {
     },
   });
 
+  // Fetch doctors on mount
+  useEffect(() => {
+    const fetchDoctors = async () => {
+      setIsLoadingDoctors(true);
+      setDoctorError(null);
+      try {
+        const allDoctors = await getDoctors();
+        setDoctors(allDoctors);
+      } catch (err) {
+        console.error("Failed to fetch doctors:", err);
+        setDoctorError("Failed to load doctors");
+      } finally {
+        setIsLoadingDoctors(false);
+      }
+    };
+
+    fetchDoctors();
+  }, []);
+
   const onSubmit = async (values: z.infer<typeof PatientFormValidation>) => {
     setIsLoading(true);
 
-    // Store file info in form data as
     let formData;
-    if (
-      values.identificationDocument &&
-      values.identificationDocument?.length > 0
-    ) {
+    if (values.identificationDocument && values.identificationDocument.length > 0) {
       const blobFile = new Blob([values.identificationDocument[0]], {
         type: values.identificationDocument[0].type,
       });
@@ -76,9 +100,7 @@ const RegisterForm = ({ user }: { user: User }) => {
         pastMedicalHistory: values.pastMedicalHistory,
         identificationType: values.identificationType,
         identificationNumber: values.identificationNumber,
-        identificationDocument: values.identificationDocument
-          ? formData
-          : undefined,
+        identificationDocument: values.identificationDocument ? formData : undefined,
         privacyConsent: values.privacyConsent,
       };
 
@@ -96,21 +118,18 @@ const RegisterForm = ({ user }: { user: User }) => {
 
   return (
     <Form {...form}>
-      <form
-        onSubmit={form.handleSubmit(onSubmit)}
-        className="flex-1 space-y-12"
-      >
+      <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 space-y-12">
+        {/* Welcome Section */}
         <section className="space-y-4">
           <h1 className="header">Welcome 👋</h1>
           <p className="text-dark-700">Let us know more about yourself.</p>
         </section>
 
+        {/* Personal Information */}
         <section className="space-y-6">
           <div className="mb-9 space-y-1">
             <h2 className="sub-header">Personal Information</h2>
           </div>
-
-          {/* NAME */}
 
           <CustomFormField
             fieldType={FormFieldType.INPUT}
@@ -121,7 +140,6 @@ const RegisterForm = ({ user }: { user: User }) => {
             iconAlt="user"
           />
 
-          {/* EMAIL & PHONE */}
           <div className="flex flex-col gap-6 xl:flex-row">
             <CustomFormField
               fieldType={FormFieldType.INPUT}
@@ -132,7 +150,6 @@ const RegisterForm = ({ user }: { user: User }) => {
               iconSrc="/assets/icons/email.svg"
               iconAlt="email"
             />
-
             <CustomFormField
               fieldType={FormFieldType.PHONE_INPUT}
               control={form.control}
@@ -142,7 +159,6 @@ const RegisterForm = ({ user }: { user: User }) => {
             />
           </div>
 
-          {/* BirthDate & Gender */}
           <div className="flex flex-col gap-6 xl:flex-row">
             <CustomFormField
               fieldType={FormFieldType.DATE_PICKER}
@@ -150,7 +166,6 @@ const RegisterForm = ({ user }: { user: User }) => {
               name="birthDate"
               label="Date of birth"
             />
-
             <CustomFormField
               fieldType={FormFieldType.SKELETON}
               control={form.control}
@@ -166,9 +181,7 @@ const RegisterForm = ({ user }: { user: User }) => {
                     {GenderOptions.map((option, i) => (
                       <div key={option + i} className="radio-group">
                         <RadioGroupItem value={option} id={option} />
-                        <Label htmlFor={option} className="cursor-pointer">
-                          {option}
-                        </Label>
+                        <Label htmlFor={option} className="cursor-pointer">{option}</Label>
                       </div>
                     ))}
                   </RadioGroup>
@@ -177,7 +190,6 @@ const RegisterForm = ({ user }: { user: User }) => {
             />
           </div>
 
-          {/* Address & Occupation */}
           <div className="flex flex-col gap-6 xl:flex-row">
             <CustomFormField
               fieldType={FormFieldType.INPUT}
@@ -186,17 +198,15 @@ const RegisterForm = ({ user }: { user: User }) => {
               label="Address"
               placeholder="14 street, New york, NY - 5101"
             />
-
             <CustomFormField
               fieldType={FormFieldType.INPUT}
               control={form.control}
               name="occupation"
               label="Occupation"
-              placeholder=" Software Engineer"
+              placeholder="Software Engineer"
             />
           </div>
 
-          {/* Emergency Contact Name & Emergency Contact Number */}
           <div className="flex flex-col gap-6 xl:flex-row">
             <CustomFormField
               fieldType={FormFieldType.INPUT}
@@ -205,7 +215,6 @@ const RegisterForm = ({ user }: { user: User }) => {
               label="Emergency contact name"
               placeholder="Guardian's name"
             />
-
             <CustomFormField
               fieldType={FormFieldType.PHONE_INPUT}
               control={form.control}
@@ -216,12 +225,12 @@ const RegisterForm = ({ user }: { user: User }) => {
           </div>
         </section>
 
+        {/* Medical Information */}
         <section className="space-y-6">
           <div className="mb-9 space-y-1">
             <h2 className="sub-header">Medical Information</h2>
           </div>
 
-          {/* PRIMARY CARE PHYSICIAN */}
           <CustomFormField
             fieldType={FormFieldType.SELECT}
             control={form.control}
@@ -229,23 +238,36 @@ const RegisterForm = ({ user }: { user: User }) => {
             label="Primary care physician"
             placeholder="Select a physician"
           >
-            {Doctors.map((doctor, i) => (
-              <SelectItem key={doctor.name + i} value={doctor.name}>
-                <div className="flex cursor-pointer items-center gap-2">
-                  <Image
-                    src={doctor.image}
-                    width={32}
-                    height={32}
-                    alt="doctor"
-                    className="rounded-full border border-dark-500"
-                  />
-                  <p>{doctor.name}</p>
-                </div>
-              </SelectItem>
-            ))}
+            {isLoadingDoctors ? (
+              <SelectItem value="loading" disabled>Loading doctors...</SelectItem>
+            ) : doctorError ? (
+              <SelectItem value="error" disabled>{doctorError}</SelectItem>
+            ) : doctors.length > 0 ? (
+              doctors.map((doctor, i) => (
+                <SelectItem key={doctor.$id || doctor.name + i} value={doctor.name}>
+                  <div className="flex cursor-pointer items-center gap-2">
+                    {doctor.imageUrl ? (
+                      <Image
+                        src={doctor.imageUrl}
+                        width={32}
+                        height={32}
+                        alt={doctor.name}
+                        className="rounded-full border border-dark-500 w-8 h-8 object-cover"
+                      />
+                    ) : (
+                      <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-gray-400 text-xs">
+                        No Image
+                      </div>
+                    )}
+                    <p>{doctor.name}</p>
+                  </div>
+                </SelectItem>
+              ))
+            ) : (
+              <SelectItem value="no-doctors" disabled>No doctors available</SelectItem>
+            )}
           </CustomFormField>
 
-          {/* INSURANCE & POLICY NUMBER */}
           <div className="flex flex-col gap-6 xl:flex-row">
             <CustomFormField
               fieldType={FormFieldType.INPUT}
@@ -254,7 +276,6 @@ const RegisterForm = ({ user }: { user: User }) => {
               label="Insurance provider"
               placeholder="BlueCross BlueShield"
             />
-
             <CustomFormField
               fieldType={FormFieldType.INPUT}
               control={form.control}
@@ -264,7 +285,6 @@ const RegisterForm = ({ user }: { user: User }) => {
             />
           </div>
 
-          {/* ALLERGY & CURRENT MEDICATIONS */}
           <div className="flex flex-col gap-6 xl:flex-row">
             <CustomFormField
               fieldType={FormFieldType.TEXTAREA}
@@ -273,7 +293,6 @@ const RegisterForm = ({ user }: { user: User }) => {
               label="Allergies (if any)"
               placeholder="Peanuts, Penicillin, Pollen"
             />
-
             <CustomFormField
               fieldType={FormFieldType.TEXTAREA}
               control={form.control}
@@ -283,16 +302,14 @@ const RegisterForm = ({ user }: { user: User }) => {
             />
           </div>
 
-          {/* FAMILY MEDICATION & PAST MEDICATIONS */}
           <div className="flex flex-col gap-6 xl:flex-row">
             <CustomFormField
               fieldType={FormFieldType.TEXTAREA}
               control={form.control}
               name="familyMedicalHistory"
-              label=" Family medical history (if relevant)"
+              label="Family medical history (if relevant)"
               placeholder="Mother had brain cancer, Father has hypertension"
             />
-
             <CustomFormField
               fieldType={FormFieldType.TEXTAREA}
               control={form.control}
@@ -303,9 +320,10 @@ const RegisterForm = ({ user }: { user: User }) => {
           </div>
         </section>
 
+        {/* Identification and Verification */}
         <section className="space-y-6">
           <div className="mb-9 space-y-1">
-            <h2 className="sub-header">Identification and Verfication</h2>
+            <h2 className="sub-header">Identification and Verification</h2>
           </div>
 
           <CustomFormField
@@ -316,9 +334,7 @@ const RegisterForm = ({ user }: { user: User }) => {
             placeholder="Select identification type"
           >
             {IdentificationTypes.map((type, i) => (
-              <SelectItem key={type + i} value={type}>
-                {type}
-              </SelectItem>
+              <SelectItem key={type + i} value={type}>{type}</SelectItem>
             ))}
           </CustomFormField>
 
@@ -343,6 +359,7 @@ const RegisterForm = ({ user }: { user: User }) => {
           />
         </section>
 
+        {/* Consent and Privacy */}
         <section className="space-y-6">
           <div className="mb-9 space-y-1">
             <h2 className="sub-header">Consent and Privacy</h2>
@@ -354,21 +371,17 @@ const RegisterForm = ({ user }: { user: User }) => {
             name="treatmentConsent"
             label="I consent to receive treatment for my health condition."
           />
-
           <CustomFormField
             fieldType={FormFieldType.CHECKBOX}
             control={form.control}
             name="disclosureConsent"
-            label="I consent to the use and disclosure of my health
-            information for treatment purposes."
+            label="I consent to the use and disclosure of my health information for treatment purposes."
           />
-
           <CustomFormField
             fieldType={FormFieldType.CHECKBOX}
             control={form.control}
             name="privacyConsent"
-            label="I acknowledge that I have reviewed and agree to the
-            privacy policy"
+            label="I acknowledge that I have reviewed and agree to the privacy policy"
           />
         </section>
 

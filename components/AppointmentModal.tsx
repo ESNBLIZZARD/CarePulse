@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { updateAppointment } from "@/lib/actions/appointment.actions";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,7 +14,6 @@ import {
 } from "@/components/ui/dialog";
 import { Appointment } from "@/types/appwrite.types";
 import { AppointmentForm } from "./forms/AppointmentForm";
-
 import "react-datepicker/dist/react-datepicker.css";
 
 export const AppointmentModal = ({
@@ -31,6 +31,7 @@ export const AppointmentModal = ({
 }) => {
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const queryClient = useQueryClient(); 
 
   const handleCompleteConfirm = async () => {
     if (type !== "complete" || !appointment) return;
@@ -47,6 +48,10 @@ export const AppointmentModal = ({
         },
         type: "complete",
       });
+
+      // ✅ Invalidate appointment queries so DataTable refreshes
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
+
       setOpen(false);
     } catch (error) {
       console.error("Error performing complete action:", error);
@@ -78,7 +83,9 @@ export const AppointmentModal = ({
       >
         <DialogHeader className="mb-4 space-y-3">
           <DialogTitle className="capitalize">
-            {type === "complete" ? "Complete Appointment" : `${type} Appointment`}
+            {type === "complete"
+              ? "Complete Appointment"
+              : `${type} Appointment`}
           </DialogTitle>
           <DialogDescription>
             {type === "complete"
