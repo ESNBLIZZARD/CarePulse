@@ -6,12 +6,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getDoctors, deleteDoctor } from "@/lib/actions/doctor.actions";
 import { Doctor } from "@/types/appwrite.types";
-import { ArrowLeft, LogOut, SquarePen, Trash2 } from "lucide-react";
+import { ArrowLeft, SquarePen, Trash2, Stethoscope, Award, X } from "lucide-react";
+import AdminHeader from "@/components/AdminHeader";
 
 export default function DoctorsListPage() {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const router = useRouter();
 
   const fetchDoctors = async () => {
@@ -21,178 +23,237 @@ export default function DoctorsListPage() {
     setLoading(false);
   };
 
-  const handleLogout = () => {
-    localStorage.clear();
-    router.push("/");
-  };
-
   useEffect(() => {
     fetchDoctors();
   }, []);
 
   const confirmDelete = async () => {
     if (selectedDoctor) {
+      setDeleting(true);
       await deleteDoctor(selectedDoctor.$id!);
       setSelectedDoctor(null);
+      setDeleting(false);
       fetchDoctors();
     }
   };
 
   return (
-    <div className="max-w-7xl mx-auto flex flex-col space-y-14">
+    <div className="mx-auto flex max-w-7xl flex-col space-y-10 px-4 sm:px-6 lg:px-8 py-8 bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 min-h-screen">
       {/* Header */}
-      <header className="admin-header flex items-center gap-6">
-        <Link href="/" className="cursor-pointer">
-          <Image
-            src="/assets/icons/logo-full.svg"
-            height={32}
-            width={162}
-            alt="logo"
-            className="h-8 w-fit"
-          />
-        </Link>
+      <AdminHeader />
 
-        <nav className="flex items-center gap-6">
-          <Link href="/admin" className="text-16-semibold">
-            Dashboard
-          </Link>
-          <Link href="/admin/doctors" className="text-16-semibold">
-            Doctors
-          </Link>
-          <button
-            onClick={handleLogout}
-            className=" text-white px-2 py-1 rounded-lg transition"
-            title="Logout !"
-          >
-            <LogOut />
-          </button>
-        </nav>
-      </header>
-      <div className="px-6">
-        {/* Page Title */}
-        <div className="flex justify-between items-center my-4">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => router.push("/admin")}
-              className="p-2 rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 hover:scale-105 transition transform"
-            >
-              <ArrowLeft size={16} />
-            </button>
-
-            <h1 className="text-3xl font-bold text-white">
-              <span className="block sm:hidden">Doctors</span>
-              <span className="hidden sm:block">Our Doctors</span>
-            </h1>
-          </div>
-
-          <Link
-            href="/admin/doctors/add/*"
-            className="bg-blue-600 text-white px-5 py-2 rounded-lg shadow 
-             border border-transparent hover:border-white transition"
-          >
-            <span className="block sm:hidden">Add +</span>
-            <span className="hidden sm:block">Add Doctor</span>
-          </Link>
-        </div>
-
-        {/* Doctors Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {loading
-            ? Array.from({ length: 6 }).map((_, i) => (
-              <div
-                key={i}
-                className="rounded-xl shadow-md animate-pulse p-6 flex flex-col items-center text-center"
+      {/* Title Section with Background Accent */}
+      <div className="relative">
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-purple-600/10 rounded-2xl blur-3xl" />
+        <div className="relative bg-gray-900/50 backdrop-blur-sm border border-gray-800/50 rounded-2xl p-4 sm:p-6 lg:p-8">
+          <div className="flex flex-col gap-4">
+            {/* Top Row: Back Button + Title */}
+            <div className="flex items-center gap-3 sm:gap-4">
+              <button
+                onClick={() => router.push("/admin")}
+                className="group p-2 sm:p-3 rounded-xl bg-gray-800/80 text-gray-300 hover:bg-blue-600 hover:text-white transition-all duration-300 shadow-lg hover:shadow-blue-500/20 flex-shrink-0"
               >
-                <div className="w-28 h-28 mb-4 rounded-full bg-gray-700" />
-                <div className="h-5 w-3/4 bg-gray-700 rounded mb-2" />
-                <div className="h-4 w-1/2 bg-gray-600 rounded mb-1" />
-                <div className="h-4 w-1/3 bg-gray-600 rounded" />
-                <div className="mt-4 flex gap-3">
-                  <div className="h-8 w-8 rounded-lg bg-gray-700" />
-                  <div className="h-8 w-8 rounded-lg bg-gray-700" />
+                <ArrowLeft size={18} className="sm:w-5 sm:h-5 group-hover:-translate-x-1 transition-transform" />
+              </button>
+
+              <div className="flex-1 min-w-0">
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white flex items-center gap-2 sm:gap-3">
+                  <Stethoscope className="text-blue-500 flex-shrink-0" size={24} />
+                  <span className="truncate">Our Doctors</span>
+                </h1>
+              </div>
+
+              {/* Add Button - Desktop */}
+              <Link
+                href="/admin/doctors/add/*"
+                className="hidden sm:flex group relative px-4 lg:px-6 py-2 lg:py-3 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold shadow-lg hover:shadow-blue-500/50 transition-all duration-300 hover:scale-105 overflow-hidden flex-shrink-0"
+              >
+                <span className="relative z-10 flex items-center gap-2">
+                  <span>Add Doctor</span>
+                </span>
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-700 to-blue-800 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </Link>
+            </div>
+
+            {/* Add Button - Mobile (Full Width) */}
+            <Link
+              href="/admin/doctors/add/*"
+              className="sm:hidden group relative px-4 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold shadow-lg hover:shadow-blue-500/50 transition-all duration-300 hover:scale-105 overflow-hidden text-center"
+            >
+              <span className="relative z-10 flex items-center justify-center gap-2">
+                <span>Add Doctor</span>
+              </span>
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-700 to-blue-800 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </Link>
+
+            {/* Stats Bar */}
+            {!loading && (
+              <div className="pt-4 border-t border-gray-800/50">
+                <div className="flex items-center gap-2 text-gray-400">
+                  <Award size={16} className="sm:w-[18px] sm:h-[18px] text-blue-500 flex-shrink-0" />
+                  <span className="text-xs sm:text-sm">
+                    Total Doctors: <span className="text-white font-semibold">{doctors.length}</span>
+                  </span>
                 </div>
               </div>
-            ))
-            : doctors.map((doctor) => (
-              <div
-                key={doctor.$id}
-                className="rounded-xl shadow-md hover:shadow-lg transition transform hover:-translate-y-1 p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 flex flex-col items-center text-center"
-              >
-                {/* Profile Image */}
-                <div className="w-20 h-20 sm:w-24 sm:h-24 mb-3 relative rounded-full overflow-hidden border border-gray-300 dark:border-gray-600 shadow-sm">
-                  {doctor.imageUrl ? (
-                    <Image
-                      src={doctor.imageUrl}
-                      alt={doctor.name}
-                      fill
-                      className="object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-400 text-xs">
-                      No Image
-                    </div>
-                  )}
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Doctors Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {loading
+          ? Array.from({ length: 6 }).map((_, i) => (
+            <div
+              key={i}
+              className="group relative rounded-2xl bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-800 shadow-xl overflow-hidden animate-pulse"
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-600/5 to-purple-600/5" />
+              <div className="relative p-6 flex flex-col items-center text-center">
+                <div className="w-28 h-28 mb-5 rounded-full bg-gray-700/50" />
+                <div className="h-6 w-3/4 bg-gray-700/50 rounded-lg mb-3" />
+                <div className="h-4 w-1/2 bg-gray-600/50 rounded-lg mb-2" />
+                <div className="h-4 w-1/3 bg-gray-600/50 rounded-lg" />
+              </div>
+            </div>
+          ))
+          : doctors.map((doctor) => (
+            <div
+              key={doctor.$id}
+              className="group relative rounded-2xl bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-800 shadow-xl hover:shadow-2xl hover:shadow-blue-500/20 transition-all duration-300 transform hover:-translate-y-2 overflow-hidden"
+            >
+              {/* Gradient Overlay */}
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-600/5 to-purple-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              
+              {/* Glow Effect */}
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl opacity-0 group-hover:opacity-20 blur transition-opacity duration-300" />
+
+              <div className="relative p-6 flex flex-col items-center text-center">
+                {/* Profile Image with Ring */}
+                <div className="relative w-28 h-28 mb-5">
+                  <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 animate-pulse" />
+                  <div className="absolute inset-1 rounded-full bg-gray-900 overflow-hidden border-4 border-gray-800 shadow-2xl">
+                    {doctor.imageUrl ? (
+                      <Image
+                        src={doctor.imageUrl}
+                        alt={doctor.name}
+                        fill
+                        className="object-cover group-hover:scale-110 transition-transform duration-300"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-700 flex items-center justify-center text-gray-400 text-xs">
+                        <Stethoscope size={32} className="opacity-30" />
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Doctor Info */}
-                <h2 className="font-semibold text-base sm:text-lg text-gray-900 dark:text-gray-100">
+                <h2 className="font-bold text-xl text-white mb-2 group-hover:text-blue-400 transition-colors">
                   {doctor.name}
                 </h2>
-                <p className="text-blue-600 dark:text-blue-400 text-xs sm:text-sm font-medium mt-0.5">
-                  {doctor.specialization}
-                </p>
-                <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm">
-                  {doctor.experience} yrs exp
-                </p>
+                
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-2 h-2 rounded-full bg-blue-500" />
+                  <p className="text-blue-400 text-sm font-medium">
+                    {doctor.specialization}
+                  </p>
+                </div>
+
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gray-800/50 border border-gray-700/50">
+                  <Award size={14} className="text-yellow-500" />
+                  <p className="text-gray-300 text-sm font-medium">
+                    {doctor.experience} years
+                  </p>
+                </div>
 
                 {/* Action Buttons */}
-                <div className="mt-3 flex gap-2">
+                <div className="mt-6 flex gap-3 w-full">
                   <Link
                     href={`/admin/doctors/edit/${doctor.$id}`}
-                    className="p-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 shadow hover:shadow-md transition"
+                    className="flex-1 group/btn relative px-4 py-2.5 rounded-xl bg-blue-600/20 border border-blue-600/50 text-blue-400 hover:bg-blue-600 hover:text-white hover:border-blue-600 shadow-lg hover:shadow-blue-500/30 transition-all duration-300 flex items-center justify-center gap-2"
                   >
-                    <SquarePen size={16} />
+                    <SquarePen size={18} className="group-hover/btn:rotate-12 transition-transform" />
+                    <span className="font-medium text-sm">Edit</span>
                   </Link>
                   <button
                     onClick={() => setSelectedDoctor(doctor)}
-                    className="p-2 rounded-lg bg-red-600 text-white hover:bg-red-700 shadow hover:shadow-md transition"
+                    className="group/btn relative px-4 py-2.5 rounded-xl bg-red-600/20 border border-red-600/50 text-red-400 hover:bg-red-600 hover:text-white hover:border-red-600 shadow-lg hover:shadow-red-500/30 transition-all duration-300 flex items-center justify-center gap-2"
                   >
-                    <Trash2 size={16} />
+                    <Trash2 size={18} className="group-hover/btn:scale-110 transition-transform" />
+                    <span className="font-medium text-sm">Delete</span>
                   </button>
                 </div>
               </div>
-            ))}
-        </div>
+            </div>
+          ))}
+      </div>
 
-        {/* Delete Confirmation Modal */}
-        {selectedDoctor && (
-          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
-            <div className="bg-gray-900 rounded-xl p-6 w-full max-w-md shadow-lg border border-gray-700">
-              <h2 className="text-xl font-semibold text-white mb-4">
-                Are you sure?
-              </h2>
-              <p className="text-gray-300 mb-6">
-                Do you really want to delete{" "}
-                <span className="font-medium text-red-400">{selectedDoctor.name}</span>?
-              </p>
-              <div className="flex justify-end gap-4">
-                <button
-                  onClick={() => setSelectedDoctor(null)}
-                  className="px-4 py-2 rounded-lg bg-gray-700 text-gray-200 hover:bg-gray-600 transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={confirmDelete}
-                  className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition"
-                >
-                  Delete
-                </button>
-              </div>
+      {/* Empty State */}
+      {!loading && doctors.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <div className="w-24 h-24 rounded-full bg-gray-800/50 flex items-center justify-center mb-6">
+            <Stethoscope size={48} className="text-gray-600" />
+          </div>
+          <h3 className="text-2xl font-semibold text-white mb-2">No Doctors Yet</h3>
+          <p className="text-gray-400 mb-6">Start by adding your first medical professional</p>
+          <Link
+            href="/admin/doctors/add/*"
+            className="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold shadow-lg hover:shadow-blue-500/50 transition-all duration-300 hover:scale-105"
+          >
+            Add Your First Doctor
+          </Link>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {selectedDoctor && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm z-50 p-4 animate-in fade-in duration-200">
+          <div className="relative bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-8 w-full max-w-md shadow-2xl border border-gray-700 animate-in zoom-in duration-200">
+            {/* Close Button */}
+            <button
+              onClick={() => setSelectedDoctor(null)}
+              className="absolute top-4 right-4 p-2 rounded-full bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white transition-colors"
+            >
+              <X size={20} />
+            </button>
+
+            {/* Icon */}
+            <div className="w-16 h-16 rounded-full bg-red-600/20 border-2 border-red-600/50 flex items-center justify-center mb-6 mx-auto">
+              <Trash2 size={32} className="text-red-500" />
+            </div>
+
+            <h2 className="text-2xl font-bold text-white mb-3 text-center">
+              Confirm Deletion
+            </h2>
+            <p className="text-gray-300 mb-8 text-center leading-relaxed">
+              Are you sure you want to delete{" "}
+              <span className="font-semibold text-red-400 block mt-2 text-lg">
+                {selectedDoctor.name}
+              </span>
+              <span className="text-sm text-gray-400 block mt-1">This action cannot be undone</span>
+            </p>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setSelectedDoctor(null)}
+                disabled={deleting}
+                className="flex-1 px-6 py-3 rounded-xl bg-gray-800 border border-gray-700 text-gray-200 hover:bg-gray-700 hover:border-gray-600 transition-all duration-300 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={deleting}
+                className="flex-1 px-6 py-3 rounded-xl bg-gradient-to-r from-red-600 to-red-700 text-white hover:from-red-700 hover:to-red-800 shadow-lg hover:shadow-red-500/50 transition-all duration-300 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {deleting ? "Deleting..." : "Delete"}
+              </button>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

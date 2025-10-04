@@ -10,6 +10,13 @@ const nextConfig = {
   images: {
     domains: ['nyc.cloud.appwrite.io'], // Add Appwrite domain
   },
+  // experimental: {
+  //   serverActions: {
+  //     // Allow both localhost and your dev tunnel during development
+  //     allowedOrigins: ["http://localhost:3000"],
+  //     allowedForwardedHosts: ["tp425636-3000.inc1.devtunnels.ms"],
+  //   },
+  // },
 };
 
 const { withSentryConfig } = require("@sentry/nextjs");

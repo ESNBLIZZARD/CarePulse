@@ -7,7 +7,6 @@ import {
   APPOINTMENT_COLLECTION_ID,
   DATABASE_ID,
   databases,
-  DOCTOR_COLLECTION_ID,
   messaging,
   PATIENT_COLLECTION_ID,
 } from "../appwrite.config";
@@ -23,20 +22,160 @@ export interface AppointmentList {
   documents: Appointment[];
 }
 
+// GET RECENT APPOINTMENT
+const DOCTOR_BUCKET_ID = process.env.NEXT_PUBLIC_BUCKET_ID;
+interface GetRecentAppointmentOptions {
+  search?: string;
+  status?: "all" | "scheduled" | "pending" | "cancelled" | "completed";
+  startDate?: string;
+  endDate?: string;
+}
 
+export const getRecentAppointmentList = async (
+  options?: GetRecentAppointmentOptions
+): Promise<AppointmentList | undefined> => {
+  try {
+    const queries: Query[] = [Query.orderDesc("$createdAt")];
+
+    // Only filter by status if it's not "all"
+    if (options?.status && options.status !== "all") {
+      queries.push(Query.equal("status", options.status));
+    }
+
+    // Date range filtering
+    if (options?.startDate) {
+      queries.push(Query.greaterThanEqual("schedule", options.startDate));
+    }
+    if (options?.endDate) {
+      queries.push(Query.lessThanEqual("schedule", options.endDate));
+    }
+
+    // Fetch appointments
+    const appointmentsRes = await databases.listDocuments(
+      process.env.DATABASE_ID!,
+      process.env.APPOINTMENT_COLLECTION_ID!,
+      queries as any[]
+    );
+
+    let appointments = appointmentsRes.documents as Appointment[];
+
+    // Fetch doctors
+    const doctorsRes = await databases.listDocuments(
+      process.env.DATABASE_ID!,
+      process.env.DOCTOR_COLLECTION_ID!
+    );
+    const doctors: Doctor[] = doctorsRes.documents.map((doc: any) => ({
+      $id: doc.$id,
+      name: doc.name,
+      imageId: doc.imageId,
+    }));
+
+    // Fetch patients if search is provided
+    let patientsMap: Record<string, Patient> = {};
+    if (options?.search) {
+      const patientsRes = await databases.listDocuments(
+        process.env.DATABASE_ID!,
+        process.env.PATIENT_COLLECTION_ID!
+      );
+      patientsRes.documents.forEach((doc: Models.Document) => {
+        const patient = doc as Patient;
+        patientsMap[patient.$id] = patient;
+      });
+    }
+
+    // Merge doctor info into appointments
+    const appointmentsWithDoctor: (Appointment & { doctor: Doctor })[] =
+      appointments.map((appt) => {
+        const doctor = doctors.find((d) => d.name === appt.primaryPhysician);
+        const imageUrl = doctor?.imageId
+          ? `${process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT}/storage/buckets/${process.env.NEXT_PUBLIC_BUCKET_ID}/files/${doctor.imageId}/view?project=${process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID}`
+          : undefined;
+
+        return {
+          ...appt,
+          doctor: {
+            $id: doctor?.$id,
+            name: doctor?.name || appt.primaryPhysician,
+            imageUrl,
+          },
+        };
+      });
+
+    // Client-side filtering for search (since we can't do fulltext search across collections)
+    let filteredAppointments = appointmentsWithDoctor;
+    if (options?.search) {
+      const searchLower = options.search.toLowerCase().trim();
+      filteredAppointments = appointmentsWithDoctor.filter((appt) => {
+        // Search in doctor name
+        const doctorMatch = appt.primaryPhysician?.toLowerCase().includes(searchLower);
+        
+        // Search in patient name
+        const patient = patientsMap[appt.patientId as string];
+        const patientMatch = patient?.name?.toLowerCase().includes(searchLower);
+        
+        // Search in patient email
+        const emailMatch = patient?.email?.toLowerCase().includes(searchLower);
+        
+        // Search in patient phone
+        const phoneMatch = patient?.phone?.includes(searchLower);
+
+        return doctorMatch || patientMatch || emailMatch || phoneMatch;
+      });
+    }
+
+    // Count statuses from filtered results
+    const counts = filteredAppointments.reduce(
+      (acc, appointment) => {
+        switch (appointment.status) {
+          case "scheduled":
+            acc.scheduledCount++;
+            break;
+          case "pending":
+            acc.pendingCount++;
+            break;
+          case "cancelled":
+            acc.cancelledCount++;
+            break;
+          case "completed":
+            acc.completedCount++;
+            break;
+        }
+        return acc;
+      },
+      {
+        scheduledCount: 0,
+        pendingCount: 0,
+        cancelledCount: 0,
+        completedCount: 0,
+      }
+    );
+
+    return {
+      totalCount: filteredAppointments.length,
+      scheduledCount: counts.scheduledCount,
+      pendingCount: counts.pendingCount,
+      cancelledCount: counts.cancelledCount,
+      completedCount: counts.completedCount,
+      documents: filteredAppointments,
+    };
+  } catch (error) {
+    console.error("Error fetching recent appointments:", error);
+  }
+};
+
+// Rest of your functions remain the same...
 // CREATE APPOINTMENT
 export const createAppointment = async (
   appointment: CreateAppointmentParams
 ) => {
   try {
-    // Ensure patientId is a string, as CreateAppointmentParams defines it as string
     const newAppointment = await databases.createDocument(
       DATABASE_ID!,
       APPOINTMENT_COLLECTION_ID!,
       ID.unique(),
       {
         ...appointment,
-        patientId: appointment.patientId, // patientId is guaranteed to be a string from CreateAppointmentParams
+        patientId: appointment.patientId, 
       }
     );
 
@@ -44,69 +183,6 @@ export const createAppointment = async (
     return parseStringify(newAppointment);
   } catch (error) {
     console.error("An error occurred while creating a new appointment:", error);
-  }
-};
-
-//GET RECENT APPOINTMENT
-const DOCTOR_BUCKET_ID = process.env.NEXT_PUBLIC_BUCKET_ID;
-
-export const getRecentAppointmentList = async (): Promise<AppointmentList | undefined> => {
-  try {
-    const appointmentsRes = await databases.listDocuments(
-      DATABASE_ID!,
-      APPOINTMENT_COLLECTION_ID!,
-      [Query.orderDesc("$createdAt")]
-    );
-    const appointments = appointmentsRes.documents as Appointment[];
-
-    const doctorsRes = await databases.listDocuments(DATABASE_ID!, DOCTOR_COLLECTION_ID!);
-    const doctors: Doctor[] = doctorsRes.documents.map((doc: any) => ({
-      $id: doc.$id,
-      name: doc.name,
-      imageId: doc.imageId,
-    }));
-
-    const appointmentsWithDoctor: (Appointment & { doctor: Doctor })[] = appointments.map(appt => {
-      const doctor = doctors.find(d => d.name === appt.primaryPhysician);
-
-      const imageUrl = doctor?.imageId
-        ? `${process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT}/storage/buckets/${DOCTOR_BUCKET_ID}/files/${doctor.imageId}/view?project=${process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID}`
-        : undefined;
-
-      return {
-        ...appt,
-        doctor: {
-          $id: doctor?.$id,
-          name: doctor?.name || appt.primaryPhysician,
-          imageUrl,
-        },
-      };
-    });
-
-    const initialCounts = { scheduledCount: 0, pendingCount: 0, cancelledCount: 0, completedCount: 0 };
-    const counts = appointmentsWithDoctor.reduce((acc, appointment) => {
-      switch (appointment.status) {
-        case "scheduled": acc.scheduledCount++; break;
-        case "pending": acc.pendingCount++; break;
-        case "cancelled": acc.cancelledCount++; break;
-        case "completed": acc.completedCount++; break;
-      }
-      return acc;
-    }, initialCounts);
-
-    const data: AppointmentList = {
-      totalCount: appointmentsRes.total,
-      scheduledCount: counts.scheduledCount,
-      pendingCount: counts.pendingCount,
-      cancelledCount: counts.cancelledCount,
-      completedCount: counts.completedCount,
-      documents: appointmentsWithDoctor,
-    };
-
-    return parseStringify(data);
-
-  } catch (error) {
-    console.error("Error fetching recent appointments:", error);
   }
 };
 
@@ -134,7 +210,6 @@ export const updateAppointment = async ({
   type,
 }: UpdateAppointmentParams) => {
   try {
-    // Validate that only scheduled appointments can be marked as completed
     if (type === "complete") {
       const currentAppointment = (await databases.getDocument(
         DATABASE_ID!,
@@ -148,7 +223,6 @@ export const updateAppointment = async ({
       }
     }
 
-    // Filter out Appwrite metadata and include only valid fields
     const updateData = {
       patientId:
         typeof appointment.patientId === "string"
@@ -194,40 +268,31 @@ export const updateAppointment = async ({
 // GET APPOINTMENTS WITH PATIENT INFO
 export async function getAppointmentsWithPatientInfo(patientId: string) {
   try {
-    console.log("Fetching appointments for patientId:", patientId);
     const appointments = await databases.listDocuments(
       DATABASE_ID!,
       APPOINTMENT_COLLECTION_ID!,
       [Query.equal("patientId", patientId)]
     );
     const documents = appointments.documents as Appointment[];
-    console.log("Fetched Appointments:", documents);
 
-    console.log("Fetching patient doc for patientId:", patientId);
     const patientDoc = (await databases.getDocument(
       DATABASE_ID!,
       PATIENT_COLLECTION_ID!,
       patientId
     )) as Patient;
-    console.log("Fetched Patient Doc:", patientDoc);
     const userId = patientDoc.userId;
-    console.log("Extracted userId:", userId);
 
-    console.log("Fetching all patients for userId:", userId);
     const allPatients = await databases.listDocuments(
       DATABASE_ID!,
       PATIENT_COLLECTION_ID!,
       [Query.equal("userId", userId)]
     );
-    console.log("Fetched All Patients:", allPatients.documents);
 
     const patientsMap: Record<string, { name: string }> = {};
     allPatients.documents.forEach((doc: Models.Document) => {
       const patient = doc as Patient;
-      console.log("Processing Patient:", patient);
       patientsMap[patient.$id] = { name: patient.name || "Unknown Patient" };
     });
-    console.log("Generated Patients Map:", patientsMap);
 
     return { appointments: documents, patientsMap };
   } catch (error) {
