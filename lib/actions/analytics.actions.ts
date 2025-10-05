@@ -1,6 +1,6 @@
-"use server";
-
-import { databases, APPOINTMENT_COLLECTION_ID, DATABASE_ID } from "@/lib/appwrite.config";
+import { databases, APPOINTMENT_COLLECTION_ID, DATABASE_ID, DOCTOR_COLLECTION_ID } from "@/lib/appwrite.config";
+import { Appointment, Doctor } from "@/types/appwrite.types";
+import { Query } from "node-appwrite";
 
 export interface DoctorAnalytics {
   doctor: string;
@@ -14,43 +14,54 @@ export interface AdminAnalytics {
   doctorStats: DoctorAnalytics[];
 }
 
-export async function getAdminAnalytics(filterDoctor?: string): Promise<AdminAnalytics | null> {
+export const getAdminAnalytics = async (
+  doctor?: string,
+  startDate?: string,
+  endDate?: string
+) => {
   try {
-    if (!DATABASE_ID || !APPOINTMENT_COLLECTION_ID) {
-      throw new Error("Database or Appointments collection ID not set in env");
-    }
+    const queries: any[] = [];
 
-    const appointmentsRes = await databases.listDocuments(DATABASE_ID, APPOINTMENT_COLLECTION_ID);
-    const appointments = appointmentsRes.documents as any[];
+    if (doctor) queries.push(Query.equal("primaryPhysician", doctor));
+    if (startDate) queries.push(Query.greaterThanEqual("schedule", startDate));
+    if (endDate) queries.push(Query.lessThanEqual("schedule", endDate));
 
-    const doctorStatsMap: Record<string, { appointments: number; cancellations: number }> = {};
-
-    appointments.forEach((appt) => {
-      const doctor = appt.doctorId || appt.primaryPhysician || "Unknown";
-
-      if (filterDoctor && doctor !== filterDoctor) return;
-
-      if (!doctorStatsMap[doctor]) {
-        doctorStatsMap[doctor] = { appointments: 0, cancellations: 0 };
-      }
-
-      if (appt.status === "cancelled") {
-        doctorStatsMap[doctor].cancellations += 1;
-      } else {
-        doctorStatsMap[doctor].appointments += 1;
-      }
-    });
-
-    const doctorStats: DoctorAnalytics[] = Object.entries(doctorStatsMap).map(
-      ([doctor, stats]) => ({
-        doctor,
-        appointments: stats.appointments,
-        cancellations: stats.cancellations,
-      })
+    const appointmentsRes = await databases.listDocuments(
+      DATABASE_ID!,
+      APPOINTMENT_COLLECTION_ID!,
+      queries
     );
 
-    const totalAppointments = doctorStats.reduce((sum, d) => sum + d.appointments, 0);
-    const totalCancellations = doctorStats.reduce((sum, d) => sum + d.cancellations, 0);
+    const appointments = appointmentsRes.documents as Appointment[];
+
+    // fetch doctors and map to Doctor type
+    const doctorsRes = await databases.listDocuments(DATABASE_ID!, DOCTOR_COLLECTION_ID!);
+    const doctors: Doctor[] = doctorsRes.documents
+      .filter((d: any) => !!d.name) // ensure name exists
+      .map((d: any) => ({
+        $id: d.$id,
+        name: d.name,
+        specialization: d.specialization || undefined,
+        experience: d.experience || undefined,
+        email: d.email || undefined,
+        phone: d.phone || undefined,
+        imageId: d.imageId || undefined,
+        imageUrl: d.imageUrl || undefined,
+      }));
+
+    const totalAppointments = appointments.length;
+    const totalCancellations = appointments.filter((a) => a.status === "cancelled").length;
+
+    const doctorStats: DoctorAnalytics[] = doctors.map((doc) => {
+      const docAppointments = appointments.filter((a) => a.primaryPhysician === doc.name);
+      const docCancellations = docAppointments.filter((a) => a.status === "cancelled").length;
+
+      return {
+        doctor: doc.name,
+        appointments: docAppointments.length,
+        cancellations: docCancellations,
+      };
+    });
 
     return {
       totalAppointments,
@@ -58,7 +69,7 @@ export async function getAdminAnalytics(filterDoctor?: string): Promise<AdminAna
       doctorStats,
     };
   } catch (error) {
-    console.error("Analytics fetch error:", error);
-    return null;
+    console.error("Error fetching analytics:", error);
+    throw error;
   }
-}
+};

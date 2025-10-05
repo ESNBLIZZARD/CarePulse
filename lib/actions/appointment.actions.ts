@@ -70,23 +70,25 @@ export const getRecentAppointmentList = async (
       imageId: doc.imageId,
     }));
 
-    // Fetch patients if search is provided
-    let patientsMap: Record<string, Patient> = {};
-    if (options?.search) {
-      const patientsRes = await databases.listDocuments(
-        process.env.DATABASE_ID!,
-        process.env.PATIENT_COLLECTION_ID!
-      );
-      patientsRes.documents.forEach((doc: Models.Document) => {
-        const patient = doc as Patient;
-        patientsMap[patient.$id] = patient;
-      });
-    }
+    // Fetch all patients once
+    const patientsRes = await databases.listDocuments(
+      process.env.DATABASE_ID!,
+      process.env.PATIENT_COLLECTION_ID!
+    );
+    const patients = patientsRes.documents as Patient[];
 
-    // Merge doctor info into appointments
-    const appointmentsWithDoctor: (Appointment & { doctor: Doctor })[] =
+    // Map patientId → Patient
+    const patientsMap: Record<string, Patient> = {};
+    patients.forEach((p) => {
+      patientsMap[p.$id] = p;
+    });
+
+    // Merge doctor + patient info into appointments
+    const appointmentsWithInfo: (Appointment & { doctor: Doctor; patient: Patient | null })[] =
       appointments.map((appt) => {
         const doctor = doctors.find((d) => d.name === appt.primaryPhysician);
+        const patient = patientsMap[typeof appt.patientId === "string" ? appt.patientId : appt.patientId.$id] ?? null;
+
         const imageUrl = doctor?.imageId
           ? `${process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT}/storage/buckets/${process.env.NEXT_PUBLIC_BUCKET_ID}/files/${doctor.imageId}/view?project=${process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID}`
           : undefined;
@@ -98,26 +100,21 @@ export const getRecentAppointmentList = async (
             name: doctor?.name || appt.primaryPhysician,
             imageUrl,
           },
+          patient, // can be null if not found
         };
       });
 
-    // Client-side filtering for search (since we can't do fulltext search across collections)
-    let filteredAppointments = appointmentsWithDoctor;
+    // Apply search filter manually (doctor + patient fields)
+    let filteredAppointments = appointmentsWithInfo;
     if (options?.search) {
       const searchLower = options.search.toLowerCase().trim();
-      filteredAppointments = appointmentsWithDoctor.filter((appt) => {
-        // Search in doctor name
-        const doctorMatch = appt.primaryPhysician?.toLowerCase().includes(searchLower);
-        
-        // Search in patient name
-        const patient = patientsMap[appt.patientId as string];
-        const patientMatch = patient?.name?.toLowerCase().includes(searchLower);
-        
-        // Search in patient email
-        const emailMatch = patient?.email?.toLowerCase().includes(searchLower);
-        
-        // Search in patient phone
-        const phoneMatch = patient?.phone?.includes(searchLower);
+
+      filteredAppointments = appointmentsWithInfo.filter((appt) => {
+        const doctorMatch = appt.doctor?.name?.toLowerCase().includes(searchLower);
+
+        const patientMatch = appt.patient?.name?.toLowerCase().includes(searchLower);
+        const emailMatch = appt.patient?.email?.toLowerCase().includes(searchLower);
+        const phoneMatch = appt.patient?.phone?.toLowerCase().includes(searchLower);
 
         return doctorMatch || patientMatch || emailMatch || phoneMatch;
       });
@@ -162,6 +159,7 @@ export const getRecentAppointmentList = async (
     console.error("Error fetching recent appointments:", error);
   }
 };
+
 
 // Rest of your functions remain the same...
 // CREATE APPOINTMENT
