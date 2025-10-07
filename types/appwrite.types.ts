@@ -49,3 +49,13 @@ export interface Doctor {
   phone?: string;
  availability?: Record<string, { start: string; end: string }[]>;
 }
+
+export interface RawDoctor {
+  $id?: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  imageUrl?: string;
+  specialization?: string;
+  availability: Record<string, string[]>; // DB format
+}
