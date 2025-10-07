@@ -61,34 +61,39 @@ const RequestSuccess = async ({
           <p>We&apos;ll be in touch shortly to confirm.</p>
         </section>
 
-        <section className="request-details">
-          <p>Requested appointment details: </p>
+        <section className="request-details mt-6 space-y-3">
+          <p className="font-medium">Requested appointment details:</p>
           <div className="flex items-center gap-3">
             {doctor?.imageUrl ? (
               <Image
                 src={doctor.imageUrl}
                 alt="doctor"
-                width={100}
-                height={100}
-                className="size-6 rounded-full"
+                width={60} 
+                height={60}
+                className="rounded-full object-cover flex-shrink-0"
               />
             ) : (
-              <div className="size-6 bg-gray-200 rounded-full flex items-center justify-center text-gray-400 text-xs">
+              <div className="w-14 h-14 bg-gray-200 rounded-full flex items-center justify-center text-gray-400 text-xs flex-shrink-0">
                 No Image
               </div>
             )}
-            <p className="whitespace-nowrap">Dr. {doctor?.name || appointment.primaryPhysician || "Not specified"}</p>
+            <p className="text-sm sm:text-base font-medium truncate">
+              Dr. {doctor?.name || appointment.primaryPhysician || "Not specified"}
+            </p>
           </div>
-          <div className="flex gap-2">
+
+          <div className="flex items-center gap-2 text-gray-300 text-sm">
             <Image
               src="/assets/icons/calendar.svg"
-              height={24}
-              width={24}
+              height={20}
+              width={20}
               alt="calendar"
+              className="flex-shrink-0"
             />
-            <p> {formatDateTime(appointment.schedule).dateTime}</p>
+            <p>{formatDateTime(appointment.schedule).dateTime}</p>
           </div>
         </section>
+
 
         <Button variant="outline" className="shad-primary-btn" asChild>
           <Link href={`/patients/${userId}/new-appointment`}>

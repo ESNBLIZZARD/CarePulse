@@ -233,69 +233,69 @@ const DoctorForm = ({ doctor, onSuccess }: DoctorFormProps) => {
                 </div>
 
                 {/* Personal & Contact Information */}
-                 <div className="pt-4 sm:pt-6 border-t border-gray-800/50">
-                <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
-                    <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-to-br from-blue-600/20 to-purple-600/20 border border-blue-600/30">
-                        <Contact className="text-blue-400" size={18} />
+                <div className="pt-4 sm:pt-6 border-t border-gray-800/50">
+                    <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
+                        <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-to-br from-blue-600/20 to-purple-600/20 border border-blue-600/30">
+                            <Contact className="text-blue-400" size={18} />
+                        </div>
+                        <div>
+                            <h3 className="text-lg sm:text-xl font-semibold text-white">Contact Information</h3>
+                            <p className="text-xs sm:text-sm text-gray-400">Set personal information for doctors...</p>
+                        </div>
                     </div>
-                    <div>
-                        <h3 className="text-lg sm:text-xl font-semibold text-white">Contact Information</h3>
-                        <p className="text-xs sm:text-sm text-gray-400">Set personal information for doctors...</p>
-                    </div>
-                </div>
-                <div className="relative">
-                    <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 to-purple-600/5 rounded-xl sm:rounded-2xl blur-xl sm:blur-2xl" />
-                    <div className="relative bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                            <CustomFormField
-                                fieldType={FormFieldType.INPUT}
-                                control={form.control}
-                                name="name"
-                                label="Full Name"
-                                placeholder="Dr. John Doe"
-                            />
-                            <CustomFormField
-                                fieldType={FormFieldType.INPUT}
-                                control={form.control}
-                                name="specialization"
-                                label="Specialization"
-                                placeholder="Cardiology, Neurology..."
-                            />
-                            <CustomFormField
-                                fieldType={FormFieldType.INPUT}
-                                control={form.control}
-                                name="experience"
-                                label="Experience (years)"
-                                placeholder="5"
-                            />
-                            <CustomFormField
-                                fieldType={FormFieldType.INPUT}
-                                control={form.control}
-                                name="email"
-                                label="Email Address"
-                                placeholder="doctor@example.com"
-                            />
-                            <Controller
-                                control={form.control}
-                                name="phone"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-gray-300 font-medium text-sm">Phone Number</FormLabel>
-                                        <FormControl>
-                                            <div className="w-full min-w-0">
-                                                <PhoneInput
-                                                    international
-                                                    defaultCountry="IN"
-                                                    value={field.value}
-                                                    onChange={field.onChange}
-                                                    className="input-phone w-full"
-                                                />
-                                            </div>
-                                        </FormControl>
-                                        <FormMessage className="text-red-400 text-xs sm:text-sm" />
-                                    </FormItem>
-                                )}
-                            />
+                    <div className="relative">
+                        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 to-purple-600/5 rounded-xl sm:rounded-2xl blur-xl sm:blur-2xl" />
+                        <div className="relative bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                                <CustomFormField
+                                    fieldType={FormFieldType.INPUT}
+                                    control={form.control}
+                                    name="name"
+                                    label="Full Name"
+                                    placeholder="Dr. John Doe"
+                                />
+                                <CustomFormField
+                                    fieldType={FormFieldType.INPUT}
+                                    control={form.control}
+                                    name="specialization"
+                                    label="Specialization"
+                                    placeholder="Cardiology, Neurology..."
+                                />
+                                <CustomFormField
+                                    fieldType={FormFieldType.INPUT}
+                                    control={form.control}
+                                    name="experience"
+                                    label="Experience (years)"
+                                    placeholder="5"
+                                />
+                                <CustomFormField
+                                    fieldType={FormFieldType.INPUT}
+                                    control={form.control}
+                                    name="email"
+                                    label="Email Address"
+                                    placeholder="doctor@example.com"
+                                />
+                                <Controller
+                                    control={form.control}
+                                    name="phone"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel className="text-gray-300 font-medium text-sm">Phone Number</FormLabel>
+                                            <FormControl>
+                                                <div className="w-full min-w-0">
+                                                    <PhoneInput
+                                                        international
+                                                        defaultCountry="IN"
+                                                        value={field.value}
+                                                        onChange={field.onChange}
+                                                        className="input-phone w-full"
+                                                    />
+                                                </div>
+                                            </FormControl>
+                                            <FormMessage className="text-red-400 text-xs sm:text-sm" />
+                                        </FormItem>
+                                    )}
+                                />
                             </div>
                         </div>
 
@@ -321,7 +321,7 @@ const DoctorForm = ({ doctor, onSuccess }: DoctorFormProps) => {
                                             const slots: { start: string; end: string }[] = Array.isArray(field.value) ? field.value : []
 
                                             return (
-                                                <div className="bg-gray-800/40 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-gray-700/50 hover:border-gray-600/50 transition-colors min-w-0 w-full overflow-hidden">
+                                                <div className="bg-gray-800/40 rounded-xl p-3 border border-gray-700/50 w-full relative">
                                                     <FormItem>
                                                         <div className="flex items-center justify-between mb-2 sm:mb-3 gap-2">
                                                             <FormLabel className="text-white font-semibold text-sm flex items-center gap-1.5 flex-shrink-0">
@@ -346,7 +346,7 @@ const DoctorForm = ({ doctor, onSuccess }: DoctorFormProps) => {
                                                                     slots.map((slot, index) => (
                                                                         <div
                                                                             key={index}
-                                                                            className="w-full flex flex-wrap sm:flex-nowrap items-stretch sm:items-center gap-2 bg-gray-900/50 p-2 rounded-lg border border-gray-700/50 min-w-0"
+                                                                            className="flex flex-wrap sm:flex-nowrap items-stretch sm:items-center gap-2 bg-gray-900/50 p-2 rounded-lg border border-gray-700/50 w-full relative z-10"
                                                                         >
                                                                             <input
                                                                                 type="time"
@@ -372,10 +372,7 @@ const DoctorForm = ({ doctor, onSuccess }: DoctorFormProps) => {
                                                                             <button
                                                                                 type="button"
                                                                                 className="w-full sm:w-auto flex items-center justify-center sm:justify-center gap-1.5 p-1.5 rounded bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 transition-colors border border-red-500/20"
-                                                                                onClick={() => {
-                                                                                    const newSlots = slots.filter((_, i) => i !== index)
-                                                                                    field.onChange(newSlots)
-                                                                                }}
+                                                                                onClick={() => field.onChange(slots.filter((_, i) => i !== index))}
                                                                                 aria-label="Remove time slot"
                                                                             >
                                                                                 <Trash2 className="w-3.5 h-3.5 sm:mr-0" />
@@ -403,6 +400,7 @@ const DoctorForm = ({ doctor, onSuccess }: DoctorFormProps) => {
                                 ))}
                             </div>
                         </div>
+
                     </div>
                 </div>
 

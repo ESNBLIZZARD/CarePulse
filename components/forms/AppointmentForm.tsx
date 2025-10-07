@@ -390,8 +390,8 @@ export const AppointmentForm = ({
                             <Image
                               src={doctor.imageUrl}
                               alt={doctor.name}
-                              width={40}
-                              height={40}
+                              width={30}
+                              height={30}
                               className="w-full h-full object-cover"
                             />
                           ) : (
