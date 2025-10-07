@@ -41,19 +41,40 @@ export const getUser = async (userId: string) => {
 };
 
 // GET PATIENT BY APPOINTMENT
-export const getPatientAppointment = async (userId: string) => {
+export const getPatientAppointment = async (id: string) => {
   try {
-    const patient = await databases.getDocument(
-      DATABASE_ID!,
-      PATIENT_COLLECTION_ID!,
-      userId, // Query by userId attribute
-    );
+    let patient;
+    try {
+      patient = await databases.getDocument(
+        DATABASE_ID!,
+        PATIENT_COLLECTION_ID!,
+        id
+      );
+    } catch (error: any) {
+      if (error?.code === 404) {
+        const patients = await databases.listDocuments(
+          DATABASE_ID!,
+          PATIENT_COLLECTION_ID!,
+          [Query.equal("userId", id)]
+        );
+
+        if (patients.total > 0) {
+          patient = patients.documents[0];
+        } else {
+          throw new Error("No patient found for the given userId or document ID");
+        }
+      } else {
+        throw error;
+      }
+    }
+
     return parseStringify(patient);
   } catch (error) {
     console.error("An error occurred while retrieving the patient details:", error);
-    return undefined; // Return undefined for errors (e.g., 404, network issues)
+    return undefined;
   }
 };
+
 
 // REGISTER PATIENT
 export const registerPatient = async ({

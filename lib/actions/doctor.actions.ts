@@ -1,7 +1,14 @@
 "use server";
 
-import { ID, InputFile, Query } from "node-appwrite";
-import { APPOINTMENT_COLLECTION_ID, BUCKET_ID, databases, ENDPOINT, PROJECT_ID, storage } from "../appwrite.config";
+import { ID, InputFile, Models, Query } from "node-appwrite";
+import {
+  APPOINTMENT_COLLECTION_ID,
+  BUCKET_ID,
+  databases,
+  ENDPOINT,
+  PROJECT_ID,
+  storage,
+} from "../appwrite.config";
 import { Doctor } from "@/types/appwrite.types";
 
 const DOCTOR_COLLECTION_ID = process.env.DOCTOR_COLLECTION_ID!;
@@ -10,8 +17,8 @@ const DATABASE_ID = process.env.DATABASE_ID!;
 // CREATE DOCTOR
 export const createDoctor = async (doctor: Doctor & { image?: FormData }) => {
   try {
-    let fileId = null;
-    let fileUrl = null;
+    let fileId: string | null = null;
+    let fileUrl: string | null = null;
 
     if (doctor.image) {
       const blobFile = doctor.image.get("blobFile") as Blob | null;
@@ -27,9 +34,11 @@ export const createDoctor = async (doctor: Doctor & { image?: FormData }) => {
       }
     }
 
+    const formattedAvailability = JSON.stringify(doctor.availability || {});
+
     const newDoctor = await databases.createDocument(
-      DATABASE_ID,
-      DOCTOR_COLLECTION_ID,
+      DATABASE_ID!,
+      DOCTOR_COLLECTION_ID!,
       ID.unique(),
       {
         name: doctor.name,
@@ -38,6 +47,7 @@ export const createDoctor = async (doctor: Doctor & { image?: FormData }) => {
         email: doctor.email || null,
         phone: doctor.phone || null,
         ...(fileId && { imageId: fileId, imageUrl: fileUrl }),
+        availability: formattedAvailability,
       }
     );
 
@@ -49,41 +59,62 @@ export const createDoctor = async (doctor: Doctor & { image?: FormData }) => {
 };
 
 // GET ALL DOCTORS
-export const getDoctors = async () => {
+export const getDoctors = async (): Promise<Doctor[]> => {
   try {
-    const doctor = await databases.listDocuments(
-      DATABASE_ID!,
-      DOCTOR_COLLECTION_ID!
+    const response = await databases.listDocuments<Models.Document>(
+      DATABASE_ID,
+      DOCTOR_COLLECTION_ID
     );
-    const response = await databases.listDocuments(DATABASE_ID!, DOCTOR_COLLECTION_ID!);
-    console.log("Raw Doctor Response:", response);
-    return doctor.documents as unknown as Doctor[];
+
+    const doctors: Doctor[] = response.documents.map((doc) => {
+      const raw = doc as unknown as Doctor;
+      return {
+        ...raw,
+        availability: raw.availability
+          ? JSON.parse(raw.availability as unknown as string)
+          : {},
+      };
+    });
+
+    return doctors;
   } catch (error) {
     console.error("Error fetching doctors:", error);
-    throw error;
+    return [];
   }
 };
 
-// GET SINGLE DOCTOR
-export const getDoctorById = async (doctorId: string) => {
+export const getDoctorById = async (
+  doctorId: string
+): Promise<Doctor | null> => {
   try {
-    const doctor = await databases.getDocument(
-      DATABASE_ID!,
-      DOCTOR_COLLECTION_ID!,
+    const doc = await databases.getDocument<Models.Document>(
+      DATABASE_ID,
+      DOCTOR_COLLECTION_ID,
       doctorId
     );
-    return doctor as unknown as Doctor;
+
+    const raw = doc as unknown as Doctor;
+
+    return {
+      ...raw,
+      availability: raw.availability
+        ? JSON.parse(raw.availability as unknown as string)
+        : {},
+    };
   } catch (error) {
     console.error("Error fetching doctor:", error);
-    throw error;
+    return null;
   }
 };
 
 // UPDATE DOCTOR
-export const updateDoctor = async (doctorId: string, doctor: Partial<Doctor> & { image?: FormData }) => {
+export const updateDoctor = async (
+  doctorId: string,
+  doctor: Partial<Doctor> & { image?: FormData }
+) => {
   try {
-    let fileId = null;
-    let fileUrl = null;
+    let fileId: string | null = null;
+    let fileUrl: string | null = null;
 
     if (doctor.image) {
       const blobFile = doctor.image.get("blobFile") as Blob | null;
@@ -99,9 +130,11 @@ export const updateDoctor = async (doctorId: string, doctor: Partial<Doctor> & {
       }
     }
 
+    const formattedAvailability = JSON.stringify(doctor.availability || {});
+
     const updated = await databases.updateDocument(
-      DATABASE_ID,
-      DOCTOR_COLLECTION_ID,
+      DATABASE_ID!,
+      DOCTOR_COLLECTION_ID!,
       doctorId,
       {
         name: doctor.name,
@@ -110,6 +143,7 @@ export const updateDoctor = async (doctorId: string, doctor: Partial<Doctor> & {
         email: doctor.email || null,
         phone: doctor.phone || null,
         ...(fileId && { imageId: fileId, imageUrl: fileUrl }),
+        availability: formattedAvailability,
       }
     );
 
@@ -125,37 +159,42 @@ export const deleteDoctor = async (doctorId: string) => {
   try {
     // Step 1: Get doctor details (for image cleanup)
     const doctor = await getDoctorById(doctorId);
-    
+    if (!doctor) {
+      throw new Error(`Doctor with ID ${doctorId} not found`);
+    }
+
     // Step 2: Find all appointments associated with this doctor
     const appointmentsToDelete = await databases.listDocuments(
       DATABASE_ID!,
       APPOINTMENT_COLLECTION_ID!,
       [
-        // Search by doctor ID
         Query.equal("primaryPhysician", doctorId),
-        // Also search by doctor name (in case appointments store doctor name instead of ID)
         Query.equal("primaryPhysician", doctor.name),
       ]
     );
 
-    console.log(`Found ${appointmentsToDelete.documents.length} appointments to delete for doctor: ${doctor.name}`);
+    console.log(
+      `Found ${appointmentsToDelete.documents.length} appointments to delete for doctor: ${doctor.name}`
+    );
 
     // Step 3: Delete all associated appointments
-    const deletePromises = appointmentsToDelete.documents.map(async (appointment) => {
-      try {
-        await databases.deleteDocument(
-          DATABASE_ID!,
-          APPOINTMENT_COLLECTION_ID!,
-          appointment.$id
-        );
-        console.log(`Deleted appointment: ${appointment.$id}`);
-      } catch (error) {
-        console.error(`Failed to delete appointment ${appointment.$id}:`, error);
-        // Continue with other deletions even if one fails
+    const deletePromises = appointmentsToDelete.documents.map(
+      async (appointment) => {
+        try {
+          await databases.deleteDocument(
+            DATABASE_ID!,
+            APPOINTMENT_COLLECTION_ID!,
+            appointment.$id
+          );
+          console.log(`Deleted appointment: ${appointment.$id}`);
+        } catch (error) {
+          console.error(
+            `Failed to delete appointment ${appointment.$id}:`,
+            error
+          );
+        }
       }
-    });
-
-    // Wait for all appointment deletions to complete
+    );
     await Promise.allSettled(deletePromises);
 
     // Step 4: Delete doctor's image from storage (if exists)
@@ -165,18 +204,23 @@ export const deleteDoctor = async (doctorId: string) => {
         console.log(`Deleted doctor image: ${doctor.imageId}`);
       } catch (error) {
         console.error("Failed to delete doctor image:", error);
-        // Continue with doctor deletion even if image deletion fails
       }
     }
 
     // Step 5: Delete the doctor document
-    await databases.deleteDocument(DATABASE_ID!, DOCTOR_COLLECTION_ID!, doctorId);
-    console.log(`Successfully deleted doctor: ${doctor.name} and all associated data`);
+    await databases.deleteDocument(
+      DATABASE_ID!,
+      DOCTOR_COLLECTION_ID!,
+      doctorId
+    );
+    console.log(
+      `Successfully deleted doctor: ${doctor.name} and all associated data`
+    );
 
     return {
       success: true,
       message: `Doctor ${doctor.name} and ${appointmentsToDelete.documents.length} associated appointments deleted successfully`,
-      deletedAppointments: appointmentsToDelete.documents.length
+      deletedAppointments: appointmentsToDelete.documents.length,
     };
   } catch (error) {
     console.error("Error deleting doctor:", error);

@@ -23,7 +23,6 @@ export interface AppointmentList {
 }
 
 // GET RECENT APPOINTMENT
-const DOCTOR_BUCKET_ID = process.env.NEXT_PUBLIC_BUCKET_ID;
 interface GetRecentAppointmentOptions {
   search?: string;
   status?: "all" | "scheduled" | "pending" | "cancelled" | "completed";
@@ -100,7 +99,7 @@ export const getRecentAppointmentList = async (
             name: doctor?.name || appt.primaryPhysician,
             imageUrl,
           },
-          patient, // can be null if not found
+          patient, 
         };
       });
 

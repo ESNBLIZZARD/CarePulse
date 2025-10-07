@@ -47,4 +47,5 @@ export interface Doctor {
   experience?: number;
   email?: string;
   phone?: string;
+ availability?: Record<string, { start: string; end: string }[]>;
 }
