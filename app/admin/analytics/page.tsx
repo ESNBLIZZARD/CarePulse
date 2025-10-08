@@ -10,16 +10,21 @@ import { DateRange } from "react-day-picker";
 import { format } from "date-fns";
 import { DateRangePicker } from "@/components/DateRangePicker";
 
-interface DoctorAnalytics {
-    doctor: string;
-    appointments: number;
-    cancellations: number;
-}
 
 interface AdminAnalytics {
-    totalAppointments: number;
-    totalCancellations: number;
-    doctorStats: DoctorAnalytics[];
+    totalAppointments: number,
+    totalCancellations: number,
+    pending: number,
+    scheduled: number,
+    completed: number,
+    doctorStats: Array<{
+        doctor: string;
+        appointments: number;
+        cancellations: number;
+        pending: number;
+        scheduled: number;
+        completed: number;
+    }>
 }
 
 export default function AnalyticsPage() {
@@ -37,7 +42,7 @@ export default function AnalyticsPage() {
                 const doctorList = await getDoctors();
                 setDoctors(
                     doctorList.map((doc) => ({
-                        $id: doc.$id || "", 
+                        $id: doc.$id || "",
                         name: doc.name,
                     }))
                 );
@@ -60,7 +65,6 @@ export default function AnalyticsPage() {
                     params.append("startDate", format(appliedDateRange.from, "yyyy-MM-dd"));
                     params.append("endDate", format(appliedDateRange.to, "yyyy-MM-dd"));
                 }
-
                 const res = await fetch(`/api/analytics?${params.toString()}`);
                 const data = await res.json();
                 setAnalytics(data);
@@ -79,17 +83,30 @@ export default function AnalyticsPage() {
     // Custom Tooltip for Chart
     const CustomTooltip = ({ active, payload }: any) => {
         if (active && payload && payload.length) {
+            const data = payload[0].payload;
             return (
                 <div className="bg-gray-800 border border-gray-700 rounded-2xl p-4 shadow-xl">
-                    <p className="text-white font-semibold mb-2">{payload[0].payload.doctor}</p>
+                    <p className="text-white font-semibold mb-2">{data.doctor}</p>
                     <div className="space-y-1">
                         <p className="text-blue-400 text-sm flex items-center gap-2">
                             <span className="w-3 h-3 rounded-full bg-blue-500"></span>
-                            Appointments: {payload[0].value}
+                            Appointments: {data.appointments}
                         </p>
                         <p className="text-red-400 text-sm flex items-center gap-2">
                             <span className="w-3 h-3 rounded-full bg-red-500"></span>
-                            Cancellations: {payload[1].value}
+                            Cancellations: {data.cancellations}
+                        </p>
+                        <p className="text-yellow-400 text-sm flex items-center gap-2">
+                            <span className="w-3 h-3 rounded-full bg-yellow-400"></span>
+                            Pending: {data.pending}
+                        </p>
+                        <p className="text-blue-300 text-sm flex items-center gap-2">
+                            <span className="w-3 h-3 rounded-full bg-blue-300"></span>
+                            Scheduled: {data.scheduled}
+                        </p>
+                        <p className="text-green-400 text-sm flex items-center gap-2">
+                            <span className="w-3 h-3 rounded-full bg-green-400"></span>
+                            Completed: {data.completed}
                         </p>
                     </div>
                 </div>
@@ -129,6 +146,11 @@ export default function AnalyticsPage() {
             </div>
         </div>
     );
+
+    const completedRate =
+        analytics && analytics.totalAppointments > 0
+            ? ((analytics.completed / analytics.totalAppointments) * 100).toFixed(1)
+            : "0";
 
     const cancellationRate =
         analytics && analytics.totalAppointments > 0
@@ -225,6 +247,7 @@ export default function AnalyticsPage() {
                     <>
                         {/* Summary Cards */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {/* Total Doctors */}
                             <div className="relative group">
                                 <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 to-purple-600/5 rounded-2xl blur-xl" />
                                 <div className="relative bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-800 rounded-2xl p-6 transition-all hover:border-gray-700">
@@ -235,7 +258,8 @@ export default function AnalyticsPage() {
                                     <p className="text-3xl font-bold text-white">{doctors.length}</p>
                                 </div>
                             </div>
-                            
+
+                            {/* Total Appointments */}
                             <div className="relative group">
                                 <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 to-purple-600/5 rounded-2xl blur-xl" />
                                 <div className="relative bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-800 rounded-2xl p-6 transition-all hover:border-gray-700">
@@ -246,7 +270,8 @@ export default function AnalyticsPage() {
                                     <p className="text-3xl font-bold text-white">{analytics.totalAppointments}</p>
                                 </div>
                             </div>
-                            
+
+                            {/* Total Cancellations */}
                             <div className="relative group">
                                 <div className="absolute inset-0 bg-gradient-to-r from-red-600/5 to-orange-600/5 rounded-2xl blur-xl" />
                                 <div className="relative bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-800 rounded-2xl p-6 transition-all hover:border-gray-700">
@@ -261,6 +286,50 @@ export default function AnalyticsPage() {
                                 </div>
                             </div>
                         </div>
+
+                        {/* New Row: Pending, Scheduled, Completed */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+                            {/* Pending */}
+                            <div className="relative group">
+                                <div className="absolute inset-0 bg-gradient-to-r from-yellow-600/5 to-yellow-500/10 rounded-2xl blur-xl" />
+                                <div className="relative bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-800 rounded-2xl p-6 transition-all hover:border-gray-700">
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <Calendar className="text-yellow-400" size={20} />
+                                        <h3 className="text-gray-400 text-sm font-medium">Pending</h3>
+                                    </div>
+                                    <p className="text-3xl font-bold text-white">{analytics.pending}</p>
+                                </div>
+                            </div>
+
+                            {/* Scheduled */}
+                            <div className="relative group">
+                                <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 to-blue-500/10 rounded-2xl blur-xl" />
+                                <div className="relative bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-800 rounded-2xl p-6 transition-all hover:border-gray-700">
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <Calendar className="text-blue-500" size={20} />
+                                        <h3 className="text-gray-400 text-sm font-medium">Scheduled</h3>
+                                    </div>
+                                    <p className="text-3xl font-bold text-white">{analytics.scheduled}</p>
+                                </div>
+                            </div>
+
+                            {/* Completed */}
+                            <div className="relative group">
+                                <div className="absolute inset-0 bg-gradient-to-r from-green-600/5 to-green-500/10 rounded-2xl blur-xl" />
+                                <div className="relative bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-800 rounded-2xl p-6 transition-all hover:border-gray-700">
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <Calendar className="text-green-400" size={20} />
+                                        <h3 className="text-gray-400 text-sm font-medium">Completed</h3>
+                                    </div>
+                                    <p className="text-3xl font-bold text-white">
+                                        {analytics.completed}
+                                        <span className="text-lg text-gray-400 ml-2">({completedRate}%)</span>
+                                    </p>
+                                </div>
+                            </div>
+
+                        </div>
+
 
                         {/* Chart */}
                         <div className="relative">
@@ -285,11 +354,11 @@ export default function AnalyticsPage() {
                                             textAnchor="end"
                                             height={80}
                                         />
-                                        <YAxis 
-                                            stroke="#9ca3af" 
-                                            tick={{ fill: "#9ca3af", fontSize: 12 }} 
-                                            domain={[0, "auto"]} 
-                                            allowDecimals={false} 
+                                        <YAxis
+                                            stroke="#9ca3af"
+                                            tick={{ fill: "#9ca3af", fontSize: 12 }}
+                                            domain={[0, "auto"]}
+                                            allowDecimals={false}
                                         />
                                         <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(59, 130, 246, 0.1)" }} />
                                         <Bar dataKey="appointments" fill="#3b82f6" radius={[8, 8, 0, 0]} />

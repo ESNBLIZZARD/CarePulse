@@ -123,9 +123,7 @@ export const AppointmentForm = ({
   }, [primaryPhysician, doctors, form]);
 
   useEffect(() => {
-    console.log("useEffect triggered:", { selectedDoctor, schedule: form.getValues("schedule") });
     if (!selectedDoctor?.availability) {
-      console.log("No availability for selected doctor");
       setAvailableSlots([]);
       datePickerRef.current?.setOpen(false);
       return;
@@ -141,14 +139,12 @@ export const AppointmentForm = ({
     const slots: Date[] = daySlots
       .filter((slot): slot is AvailabilitySlot => {
         const isValid = !!slot && typeof slot.start === "string" && typeof slot.end === "string" && slot.start.includes(":") && slot.end.includes(":");
-        console.log("Slot validation:", { slot, isValid });
         return isValid;
       })
       .flatMap(slot => {
         const [startHours, startMinutes] = slot.start.split(":").map(Number);
         const [endHours, endMinutes] = slot.end.split(":").map(Number);
         if (Number.isNaN(startHours) || Number.isNaN(startMinutes) || Number.isNaN(endHours) || Number.isNaN(endMinutes)) {
-          console.warn("Invalid time format for slot:", slot);
           return [];
         }
         const slotStart = new Date(selectedDate);
@@ -166,7 +162,6 @@ export const AppointmentForm = ({
         return slotTimes;
       });
 
-    console.log("Calculated slots:", slots);
     setAvailableSlots(slots);
 
     if (slots.length > 0) {
@@ -209,9 +204,7 @@ export const AppointmentForm = ({
         if (newAppointment) {
           form.reset();
           queryClient.invalidateQueries({ queryKey: ["appointments"] });
-          router.push(
-            `/patients/${patientId}/new-appointment/success?appointmentId=${newAppointment.$id}`
-          );
+          router.push(`/patients/${patientId}/new-appointment/success?appointmentId=${newAppointment.$id}`);
         }
       } else if (appointment) {
         const updatedAppointment = await updateAppointment({
@@ -412,7 +405,7 @@ export const AppointmentForm = ({
                 )}
               </CustomFormField>
 
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <label className="text-sm font-medium text-gray-200 pr-2">
                   Select Date & Time
                 </label>
@@ -425,7 +418,6 @@ export const AppointmentForm = ({
                       ref={datePickerRef}
                       value={field.value as any}
                       onChange={(date: Date | null, event?: React.SyntheticEvent<any> | undefined) => {
-                        console.log("DatePicker onChange:", date);
                         field.onChange(date);
                       }}
                       showTimeSelect

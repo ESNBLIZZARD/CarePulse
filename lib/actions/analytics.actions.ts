@@ -37,7 +37,7 @@ export const getAdminAnalytics = async (
     // fetch doctors and map to Doctor type
     const doctorsRes = await databases.listDocuments(DATABASE_ID!, DOCTOR_COLLECTION_ID!);
     const doctors: Doctor[] = doctorsRes.documents
-      .filter((d: any) => !!d.name) // ensure name exists
+      .filter((d: any) => !!d.name) 
       .map((d: any) => ({
         $id: d.$id,
         name: d.name,
@@ -49,23 +49,33 @@ export const getAdminAnalytics = async (
         imageUrl: d.imageUrl || undefined,
       }));
 
+    // Overall counts
     const totalAppointments = appointments.length;
     const totalCancellations = appointments.filter((a) => a.status === "cancelled").length;
+    const pending = appointments.filter((a) => a.status === "pending").length;
+    const scheduled = appointments.filter((a) => a.status === "scheduled").length;
+    const completed = appointments.filter((a) => a.status === "completed").length;
 
+    // Doctor-wise stats
     const doctorStats: DoctorAnalytics[] = doctors.map((doc) => {
       const docAppointments = appointments.filter((a) => a.primaryPhysician === doc.name);
-      const docCancellations = docAppointments.filter((a) => a.status === "cancelled").length;
 
       return {
         doctor: doc.name,
         appointments: docAppointments.length,
-        cancellations: docCancellations,
+        cancellations: docAppointments.filter((a) => a.status === "cancelled").length,
+        pending: docAppointments.filter((a) => a.status === "pending").length,
+        scheduled: docAppointments.filter((a) => a.status === "scheduled").length,
+        completed: docAppointments.filter((a) => a.status === "completed").length,
       };
     });
 
     return {
       totalAppointments,
       totalCancellations,
+      pending,
+      scheduled,
+      completed,
       doctorStats,
     };
   } catch (error) {
@@ -73,3 +83,4 @@ export const getAdminAnalytics = async (
     throw error;
   }
 };
+

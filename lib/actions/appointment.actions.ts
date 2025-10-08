@@ -36,7 +36,7 @@ export const getRecentAppointmentList = async (
   try {
     const queries: Query[] = [Query.orderDesc("$createdAt")];
 
-    // Only filter by status if it's not "all"
+    // Filter by status only if it's not "all"
     if (options?.status && options.status !== "all") {
       queries.push(Query.equal("status", options.status));
     }
@@ -160,7 +160,6 @@ export const getRecentAppointmentList = async (
 };
 
 
-// Rest of your functions remain the same...
 // CREATE APPOINTMENT
 export const createAppointment = async (
   appointment: CreateAppointmentParams
