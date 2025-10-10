@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { ID, Models, Query, Storage } from "node-appwrite";
+import { ID, Models, Query } from "node-appwrite";
 import { Appointment, Doctor, Patient } from "@/types/appwrite.types";
 import {
   APPOINTMENT_COLLECTION_ID,

@@ -23,7 +23,6 @@ export default function AdminHeader() {
         className="text-16-semibold text-gray-300 hover:text-white transition-colors duration-200 relative group"
       >
         Dashboard
-        <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-500 transition-all duration-300 group-hover:w-full"></span>
       </Link>
       <Link 
         href="/admin/doctors" 
@@ -31,7 +30,6 @@ export default function AdminHeader() {
         className="text-16-semibold text-gray-300 hover:text-white transition-colors duration-200 relative group"
       >
         Doctors
-        <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-500 transition-all duration-300 group-hover:w-full"></span>
       </Link>
       <Link 
         href="/admin/analytics" 
@@ -39,7 +37,6 @@ export default function AdminHeader() {
         className="text-16-semibold text-gray-300 hover:text-white transition-colors duration-200 relative group"
       >
         Analytics
-        <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-500 transition-all duration-300 group-hover:w-full"></span>
       </Link>
       <button
         title="Logout"

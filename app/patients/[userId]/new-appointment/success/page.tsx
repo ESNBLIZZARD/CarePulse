@@ -7,12 +7,6 @@ import { formatDateTime } from "@/lib/utils";
 import { getAppointment } from "@/lib/actions/appointment.actions";
 import { Appointment, Doctor } from "@/types/appwrite.types";
 
-// Define the SearchParamProps type if not already defined
-interface SearchParamProps {
-  searchParams: { appointmentId?: string };
-  params: { userId: string };
-}
-
 const RequestSuccess = async ({
   searchParams,
   params: { userId },
@@ -63,20 +57,24 @@ const RequestSuccess = async ({
 
         <section className="request-details mt-6 space-y-3">
           <p className="font-medium">Requested appointment details:</p>
+
           <div className="flex items-center gap-3">
-            {doctor?.imageUrl ? (
-              <Image
-                src={doctor.imageUrl}
-                alt="doctor"
-                width={60} 
-                height={60}
-                className="rounded-full object-cover flex-shrink-0"
-              />
-            ) : (
-              <div className="w-14 h-14 bg-gray-200 rounded-full flex items-center justify-center text-gray-400 text-xs flex-shrink-0">
-                No Image
-              </div>
-            )}
+            <div className="w-16 h-16 rounded-full overflow-hidden flex-shrink-0">
+              {doctor?.imageUrl ? (
+                <Image
+                  src={doctor.imageUrl}
+                  alt="doctor"
+                  width={64}
+                  height={64}
+                  className="object-cover w-full h-full"
+                />
+              ) : (
+                <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400 text-xs">
+                  No Image
+                </div>
+              )}
+            </div>
+
             <p className="text-sm sm:text-base font-medium truncate">
               Dr. {doctor?.name || appointment.primaryPhysician || "Not specified"}
             </p>
@@ -93,6 +91,7 @@ const RequestSuccess = async ({
             <p>{formatDateTime(appointment.schedule).dateTime}</p>
           </div>
         </section>
+
 
 
         <Button variant="outline" className="shad-primary-btn" asChild>

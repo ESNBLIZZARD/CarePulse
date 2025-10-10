@@ -18,18 +18,17 @@ export default async function PatientAppointments({
     // Fetch both appointments and doctors data
     const [{ appointments, patientsMap }, doctors] = await Promise.all([
       getAppointmentsWithPatientInfo(patientId),
-      getDoctors() // Use your existing getDoctors function
+      getDoctors()
     ]);
     
-    console.log("Appointments in Page:", appointments);
-    console.log("Patients Map in Page:", patientsMap);
-    console.log("Doctors in Page:", doctors); // Debug log to see doctors data
-
+    // console.log("Appointments in Page:", appointments);
+    // console.log("Patients Map in Page:", patientsMap);
+    // console.log("Doctors in Page:", doctors); 
     return (
       <AppointmentList 
         appointments={appointments} 
         patients={patientsMap} 
-        doctors={doctors} // Pass the doctors data to AppointmentList
+        doctors={doctors} 
       />
     );
   } catch (error) {

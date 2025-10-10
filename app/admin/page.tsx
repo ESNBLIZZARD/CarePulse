@@ -218,15 +218,15 @@ const AdminPage = () => {
                 appointmentsData?.documents?.length > 0
                   ? appointmentsData?.documents
                   : [
-                      {
-                        id: "empty",
-                        patient: { name: "No appointments found" },
-                        doctor: { name: "" },
-                        status: "",
-                        date: "",
-                        time: "",
-                      } as any,
-                    ]
+                    {
+                      id: "empty",
+                      patient: { name: "No appointments found" },
+                      doctor: { name: "" },
+                      status: "",
+                      date: "",
+                      time: "",
+                    } as any,
+                  ]
               }
             />
           )}

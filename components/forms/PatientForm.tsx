@@ -12,20 +12,6 @@ import { UserFormValidation } from "@/lib/validation";
 import { useRouter } from "next/navigation";
 import { createUser } from "@/lib/actions/patient.action";
 
-
-// Define the form schema
-const formSchema = z.object({
-  name: z.string().min(2, {
-    message: "Name must be at least 2 characters.",
-  }),
-  email: z.string().email({
-    message: "Please enter a valid email address.",
-  }),
-  phone: z.string().min(10, {
-    message: "Phone number must be at least 10 digits.",
-  }),
-});
-
 export const PatientForm = () => {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
@@ -99,6 +85,12 @@ export const PatientForm = () => {
         />
 
         <SubmitButton isLoading={isLoading}>Get Started</SubmitButton>
+          <div className="mt-6 p-4 rounded-xl bg-gray-800/30 border border-gray-800 backdrop-blur-sm">
+          <p className="text-gray-500 text-xs text-center leading-relaxed">
+            By continuing, you agree to our Terms of Service and Privacy Policy. 
+            Your information is securely encrypted and protected.
+          </p>
+        </div>
       </form>
     </Form>
   );

@@ -2,11 +2,6 @@ import { AppointmentForm } from "@/components/forms/AppointmentForm";
 import { getPatient, getPatientAppointment } from "@/lib/actions/patient.action";
 import Image from "next/image";
 
-interface SearchParamProps {
-  params: { userId: string };
-  searchParams?: { [key: string]: string | string[] | undefined };
-}
-
 const Appointment = async ({ params: { userId }, searchParams }: SearchParamProps) => {
   let patient;
 
@@ -24,13 +19,13 @@ const Appointment = async ({ params: { userId }, searchParams }: SearchParamProp
   return (
     <div className="flex h-screen max-h-screen">
       <section className="remove-scrollbar container my-auto">
-        <div className="sub-container max-w-[860px] flex-1 justify-between">
+        <div className="sub-container max-w-[960px] flex justify-between">
           <Image
             src="/assets/icons/logo-full.svg"
             height={1000}
             width={1000}
             alt="logo"
-            className="mb-12 h-10 w-fit"
+            className="mb-10 h-10 w-fit"
           />
 
           <AppointmentForm
@@ -49,7 +44,7 @@ const Appointment = async ({ params: { userId }, searchParams }: SearchParamProp
         height={1500}
         width={1500}
         alt="appointment"
-        className="side-img max-w-[390px] bg-bottom"
+        className="side-img max-w-[490px] bg-bottom"
       />
     </div>
   );
