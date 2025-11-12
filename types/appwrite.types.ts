@@ -34,6 +34,7 @@ export interface Appointment extends Models.Document {
   note: string;
   userId: string;
   cancellationReason: string | null;
+  reports?: { url: string; type: string; fileName?: string; uploadedAt: string }[]; 
 }
 
 
@@ -57,5 +58,5 @@ export interface RawDoctor {
   phone?: string;
   imageUrl?: string;
   specialization?: string;
-  availability: Record<string, string[]>; // DB format
+  availability: Record<string, string[]>; 
 }

@@ -5,12 +5,16 @@ import { ID, Models, Query } from "node-appwrite";
 import { Appointment, Doctor, Patient } from "@/types/appwrite.types";
 import {
   APPOINTMENT_COLLECTION_ID,
+  BUCKET_ID,
   DATABASE_ID,
   databases,
   messaging,
   PATIENT_COLLECTION_ID,
+  storage,
 } from "../appwrite.config";
 import { formatDateTime, parseStringify } from "../utils";
+import { NextResponse } from "next/server";
+import { Readable } from "stream";
 
 // Define the return type for getRecentAppointmentList
 export interface AppointmentList {
@@ -124,16 +128,16 @@ export const getRecentAppointmentList = async (
       (acc, appointment) => {
         switch (appointment.status) {
           case "scheduled":
-            acc.scheduledCount++;
+            acc.scheduledCount ++;
             break;
           case "pending":
-            acc.pendingCount++;
+            acc.pendingCount ++;
             break;
           case "cancelled":
-            acc.cancelledCount++;
+            acc.cancelledCount ++;
             break;
           case "completed":
-            acc.completedCount++;
+            acc.completedCount ++;
             break;
         }
         return acc;
@@ -334,3 +338,94 @@ export async function getAppointment(
     return null;
   }
 }
+
+//UPLOAD APPOINTMENT REPORT
+export async function POST(req: Request, { params }: { params: { appointmentId: string } }) {
+  try {
+    const appointmentId = params.appointmentId;
+    const form = await req.formData();
+
+    const file = form.get("file") as File | null;
+    const type = (form.get("type") as string) ?? "Other";
+
+    if (!file) return NextResponse.json({ error: "No file provided" }, { status: 400 });
+
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const stream = Readable.from(buffer);
+
+    // Pass the Readable stream to Appwrite
+    const uploadedFile = await storage.createFile(BUCKET_ID!, ID.unique(), stream);
+
+    const fileUrl = `${process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT}/storage/buckets/${BUCKET_ID}/files/${uploadedFile.$id}/view?project=${process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID}`;
+
+    const existing = (await databases.getDocument(DATABASE_ID!, APPOINTMENT_COLLECTION_ID!, appointmentId)) as Appointment;
+
+    const newReport = {
+      url: fileUrl,
+      type,
+      fileName: file.name,
+      uploadedAt: new Date().toISOString(),
+    };
+
+    const updatedReports = Array.isArray(existing.reports) ? [...existing.reports, newReport] : [newReport];
+
+    await databases.updateDocument(DATABASE_ID!, APPOINTMENT_COLLECTION_ID!, appointmentId, { reports: updatedReports });
+
+    return NextResponse.json({ success: true, reports: updatedReports });
+  } catch (err) {
+    console.error("Upload route error:", err);
+    return NextResponse.json({ error: "Upload failed" }, { status: 500 });
+  }
+}
+
+
+// DELETE APPOINTMENT REPORT
+export async function DELETE(req: Request, { params }: { params: { appointmentId: string } }) {
+  try {
+    const { appointmentId } = params;
+    const { fileId } = await req.json(); // Expect { fileId } in request body
+
+    if (!fileId) {
+      return NextResponse.json({ error: "Missing fileId" }, { status: 400 });
+    }
+
+    // Delete file from Appwrite Storage
+    await storage.deleteFile(BUCKET_ID!, fileId);
+
+    // Fetch appointment to update its reports list
+    const appointment = (await databases.getDocument(
+      DATABASE_ID!,
+      APPOINTMENT_COLLECTION_ID!,
+      appointmentId
+    )) as Appointment;
+
+    // Filter out the deleted report
+    const updatedReports = Array.isArray(appointment.reports)
+      ? appointment.reports.filter(
+          (report: any) =>
+            !(
+              report.url.includes(fileId) || 
+              report.fileId === fileId
+            )
+        )
+      : [];
+
+    // Update document
+    await databases.updateDocument(
+      DATABASE_ID!,
+      APPOINTMENT_COLLECTION_ID!,
+      appointmentId,
+      { reports: updatedReports }
+    );
+
+    return NextResponse.json({ success: true, reports: updatedReports });
+  } catch (error) {
+    console.error("Error deleting report file:", error);
+    return NextResponse.json({ error: "Failed to delete file" }, { status: 500 });
+  }
+}
+
+
+
+

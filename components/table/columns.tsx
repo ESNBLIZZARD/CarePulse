@@ -8,6 +8,8 @@ import { Appointment, Doctor } from "@/types/appwrite.types";
 
 import { AppointmentModal } from "../AppointmentModal";
 import { StatusBadge } from "../StatusBadge";
+import { UploadReportModal } from "../UploadReportModal";
+import { ViewReportsModal } from "../ViewReportModal";
 
 export const columns: ColumnDef<Appointment & { doctor: Doctor }>[] = [
   {
@@ -119,6 +121,17 @@ export const columns: ColumnDef<Appointment & { doctor: Doctor }>[] = [
           )}
 
           {/* // UPLOAD REPORT-------- */}
+          {appointment.status === "completed" && (
+            <div className="flex items-center gap-2">
+              {/* Show Upload button for admin/doctor users (assume admin sees this table) */}
+              <UploadReportModal appointmentId={appointment.$id} />
+
+              {/* If there are reports, show view modal */}
+              {appointment.reports && appointment.reports.length > 0 && (
+                <ViewReportsModal appointment={appointment} />
+              )}
+            </div>
+          )}
           {/*
           {appointment.status === "completed" && (
             <div className="flex items-center gap-2">
