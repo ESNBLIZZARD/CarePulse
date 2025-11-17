@@ -11,6 +11,7 @@ const RequestSuccess = async ({
   searchParams,
   params: { userId },
 }: SearchParamProps) => {
+   console.log("✅ userId from params:", userId);
   const appointmentId = (searchParams?.appointmentId as string) || "";
   const appointment = await getAppointment(appointmentId) as Appointment;
 
@@ -94,11 +95,17 @@ const RequestSuccess = async ({
 
 
 
-        <Button variant="outline" className="shad-primary-btn" asChild>
-          <Link href={`/patients/${userId}/new-appointment`}>
-            New Appointment
-          </Link>
-        </Button>
+       {userId && userId !== "undefined" ? (
+  <Button variant="outline" className="shad-primary-btn" asChild>
+    <Link href={`/patients/${userId}/new-appointment`}>
+      New Appointment
+    </Link>
+  </Button>
+) : (
+  <Button variant="outline" className="shad-primary-btn" disabled>
+    Invalid User
+  </Button>
+)}
 
         <p className="copyright">© 2025 CarePulse</p>
       </div>

@@ -426,6 +426,16 @@ export async function DELETE(req: Request, { params }: { params: { appointmentId
   }
 }
 
+// DOWNLOAD REPORT
+export async function downloadReport(fileId: string) {
+  try {
+    const fileUrl = `${process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT}/storage/buckets/${BUCKET_ID}/files/${fileId}/download?project=${process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID}`;
+    return { success: true, url: fileUrl };
+  } catch (error) {
+    console.error("Error generating download link:", error);
+    return { success: false, error: "Failed to generate download link" };
+  }
+}
 
 
 

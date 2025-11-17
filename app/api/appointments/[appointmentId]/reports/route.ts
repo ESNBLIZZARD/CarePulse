@@ -49,9 +49,7 @@ export async function POST(
     )) as Appointment;
 
     const existingReports: any[] = Array.isArray(existing.reports)
-      ? existing.reports.map((r) =>
-          typeof r === "string" ? JSON.parse(r) : r
-        )
+      ? existing.reports.map((r) => (typeof r === "string" ? JSON.parse(r) : r))
       : [];
 
     const newReport = {

@@ -8,6 +8,7 @@ import { getDoctors, deleteDoctor } from "@/lib/actions/doctor.actions";
 import { Doctor } from "@/types/appwrite.types";
 import { ArrowLeft, SquarePen, Trash2, Stethoscope, Award, X } from "lucide-react";
 import AdminHeader from "@/components/AdminHeader";
+import DoctorCard from "@/components/DoctorCard";
 
 export default function DoctorsListPage() {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
@@ -105,10 +106,7 @@ export default function DoctorsListPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {loading
           ? Array.from({ length: 6 }).map((_, i) => (
-            <div
-              key={i}
-              className="group relative rounded-2xl bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-800 shadow-xl overflow-hidden animate-pulse"
-            >
+            <div key={i} className="group relative rounded-2xl bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-800 shadow-xl overflow-hidden animate-pulse">
               <div className="absolute inset-0 bg-gradient-to-br from-blue-600/5 to-purple-600/5" />
               <div className="relative p-6 flex flex-col items-center text-center">
                 <div className="w-28 h-28 mb-5 rounded-full bg-gray-700/50" />
@@ -119,74 +117,12 @@ export default function DoctorsListPage() {
             </div>
           ))
           : doctors.map((doctor) => (
-            <div
+            <DoctorCard
               key={doctor.$id}
-              className="group relative rounded-2xl bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-800 shadow-xl hover:shadow-2xl hover:shadow-blue-500/20 transition-all duration-300 transform hover:-translate-y-2 overflow-hidden"
-            >
-              {/* Gradient Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-600/5 to-purple-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              
-              {/* Glow Effect */}
-              <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl opacity-0 group-hover:opacity-20 blur transition-opacity duration-300" />
-
-              <div className="relative p-6 flex flex-col items-center text-center">
-                {/* Profile Image with Ring */}
-                <div className="relative w-28 h-28 mb-5">
-                  <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 animate-pulse" />
-                  <div className="absolute inset-1 rounded-full bg-gray-900 overflow-hidden border-4 border-gray-800 shadow-2xl">
-                    {doctor.imageUrl ? (
-                      <Image
-                        src={doctor.imageUrl}
-                        alt={doctor.name}
-                        fill
-                        className="object-cover group-hover:scale-110 transition-transform duration-300"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-700 flex items-center justify-center text-gray-400 text-xs">
-                        <Stethoscope size={32} className="opacity-30" />
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Doctor Info */}
-                <h2 className="font-bold text-xl text-white mb-2 group-hover:text-blue-400 transition-colors">
-                  {doctor.name}
-                </h2>
-                
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-2 h-2 rounded-full bg-blue-500" />
-                  <p className="text-blue-400 text-sm font-medium">
-                    {doctor.specialization}
-                  </p>
-                </div>
-
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gray-800/50 border border-gray-700/50">
-                  <Award size={14} className="text-yellow-500" />
-                  <p className="text-gray-300 text-sm font-medium">
-                    {doctor.experience} years
-                  </p>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="mt-6 flex gap-3 w-full">
-                  <Link
-                    href={`/admin/doctors/edit/${doctor.$id}`}
-                    className="flex-1 group/btn relative px-4 py-2.5 rounded-xl bg-blue-600/20 border border-blue-600/50 text-blue-400 hover:bg-blue-600 hover:text-white hover:border-blue-600 shadow-lg hover:shadow-blue-500/30 transition-all duration-300 flex items-center justify-center gap-2"
-                  >
-                    <SquarePen size={18} className="group-hover/btn:rotate-12 transition-transform" />
-                    <span className="font-medium text-sm">Edit</span>
-                  </Link>
-                  <button
-                    onClick={() => setSelectedDoctor(doctor)}
-                    className="group/btn relative px-4 py-2.5 rounded-xl bg-red-600/20 border border-red-600/50 text-red-400 hover:bg-red-600 hover:text-white hover:border-red-600 shadow-lg hover:shadow-red-500/30 transition-all duration-300 flex items-center justify-center gap-2"
-                  >
-                    <Trash2 size={18} className="group-hover/btn:scale-110 transition-transform" />
-                    <span className="font-medium text-sm">Delete</span>
-                  </button>
-                </div>
-              </div>
-            </div>
+              doctor={doctor}
+              onEdit={(d) => router.push(`/admin/doctors/edit/${d.$id}`)}
+              onDelete={(d) => setSelectedDoctor(d)}
+            />
           ))}
       </div>
 

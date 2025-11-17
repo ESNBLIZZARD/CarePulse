@@ -10,24 +10,34 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Trash2 } from "lucide-react"; 
+import { Trash2 } from "lucide-react";
+// import { toast } from "sonner"; // ✅ if you use sonner or replace with your toast library
 
 interface Props {
   appointment: Appointment;
 }
 
 export function ViewReportsModal({ appointment }: Props) {
-  // handle reports (may be JSON string or array)
-  const parsedReports =
-    typeof appointment.reports === "string"
-      ? JSON.parse(appointment.reports)
-      : appointment.reports ?? [];
+  // ✅ Safely parse reports (avoid crashing on "Empty" or invalid JSON)
+  const parsedReports = (() => {
+    if (!appointment.reports) return [];
+    if (typeof appointment.reports === "string") {
+      try {
+        const parsed = JSON.parse(appointment.reports);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+    return Array.isArray(appointment.reports) ? appointment.reports : [];
+  })();
 
   const [reports, setReports] = useState(parsedReports);
   const [deleting, setDeleting] = useState<string | null>(null);
 
   if (!reports.length) return null;
 
+  // ✅ Handle file deletion
   const handleDelete = async (index: number) => {
     const confirmDelete = window.confirm("Are you sure you want to delete this report?");
     if (!confirmDelete) return;
@@ -39,23 +49,55 @@ export function ViewReportsModal({ appointment }: Props) {
       updatedReports.splice(index, 1);
       setReports(updatedReports);
 
-      // Make API call to update in DB
       const res = await fetch(`/api/appointments/${appointment.$id}/reports`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ reports: updatedReports }),
       });
 
-      if (!res.ok) {
-        throw new Error("Failed to delete report");
-      }
+      if (!res.ok) throw new Error("Failed to delete report");
+
+    console.log("Report deleted successfully ✅");
     } catch (error) {
       console.error("Error deleting report:", error);
-      alert("Something went wrong while deleting the report.");
+    console.error("Something went wrong while deleting the report.");
     } finally {
       setDeleting(null);
     }
   };
+
+  //  Handle download
+  const handleDownload = async (report: any) => {
+  try {
+    const reportData = typeof report === "string" ? JSON.parse(report) : report;
+
+    if (!reportData?.url && !reportData?.fileId) {
+      console.error("No valid file reference found for this report.");
+      return;
+    }
+
+    let viewUrl = reportData.url;
+    if (viewUrl?.includes("/view")) {
+      // already a view link, keep as is
+    } else if (reportData.fileId) {
+      // create a view URL instead of download
+      viewUrl = `${process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT}/storage/buckets/${process.env.NEXT_PUBLIC_BUCKET_ID}/files/${reportData.fileId}/view?project=${process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID}`;
+    }
+
+    if (!viewUrl) {
+      console.error("No valid file URL found.");
+      return;
+    }
+
+    //  Open file in a new browser tab
+    window.open(viewUrl, "_blank");
+    console.log("Opened file in a new tab!");
+  } catch (error) {
+    console.error("Error opening file:", error);
+    console.error("Failed to open file in new tab.");
+  }
+};
+
 
   return (
     <Dialog>
@@ -90,14 +132,14 @@ export function ViewReportsModal({ appointment }: Props) {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <a
-                    href={r.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-blue-600 underline"
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-blue-500 hover:text-blue-700"
+                    onClick={() => handleDownload(r)}
                   >
                     Download
-                  </a>
+                  </Button>
                   <Button
                     size="icon"
                     variant="ghost"

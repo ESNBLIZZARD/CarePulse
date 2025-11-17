@@ -204,7 +204,11 @@ export const AppointmentForm = ({
         if (newAppointment) {
           form.reset();
           queryClient.invalidateQueries({ queryKey: ["appointments"] });
-          router.push(`/patients/${patientId}/new-appointment/success?appointmentId=${newAppointment.$id}`);
+          if (patientId && userId) {
+            router.push(`/patients/${userId}/new-appointment/success?appointmentId=${newAppointment.$id}`);
+          } else {
+            console.warn("⚠️ Missing patientId or userId during redirect");
+          }
         }
       } else if (appointment) {
         const updatedAppointment = await updateAppointment({
