@@ -314,7 +314,7 @@ export default function AppointmentList({
                       </div>
                     ) : (
                       <p className="text-xs sm:text-sm text-gray-500 mt-3 sm:mt-4 italic">
-                        No reports uploaded yet
+                        {/* No reports uploaded yet */}
                       </p>
                     )}
                   </div>

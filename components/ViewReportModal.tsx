@@ -11,14 +11,15 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Trash2 } from "lucide-react";
-// import { toast } from "sonner"; // ✅ if you use sonner or replace with your toast library
+// import { toast } from "sonner"; // if you use sonner or replace with your toast library
 
 interface Props {
   appointment: Appointment;
+  isAdmin?: boolean;
 }
 
-export function ViewReportsModal({ appointment }: Props) {
-  // ✅ Safely parse reports (avoid crashing on "Empty" or invalid JSON)
+export function ViewReportsModal({ appointment, isAdmin }: Props) {
+  // Safely parse reports (avoid crashing on "Empty" or invalid JSON)
   const parsedReports = (() => {
     if (!appointment.reports) return [];
     if (typeof appointment.reports === "string") {
@@ -37,7 +38,7 @@ export function ViewReportsModal({ appointment }: Props) {
 
   if (!reports.length) return null;
 
-  // ✅ Handle file deletion
+  // Handle file deletion
   const handleDelete = async (index: number) => {
     const confirmDelete = window.confirm("Are you sure you want to delete this report?");
     if (!confirmDelete) return;
@@ -57,10 +58,10 @@ export function ViewReportsModal({ appointment }: Props) {
 
       if (!res.ok) throw new Error("Failed to delete report");
 
-    console.log("Report deleted successfully ✅");
+      console.log("Report deleted successfully ✅");
     } catch (error) {
       console.error("Error deleting report:", error);
-    console.error("Something went wrong while deleting the report.");
+      console.error("Something went wrong while deleting the report.");
     } finally {
       setDeleting(null);
     }
@@ -68,35 +69,35 @@ export function ViewReportsModal({ appointment }: Props) {
 
   //  Handle download
   const handleDownload = async (report: any) => {
-  try {
-    const reportData = typeof report === "string" ? JSON.parse(report) : report;
+    try {
+      const reportData = typeof report === "string" ? JSON.parse(report) : report;
 
-    if (!reportData?.url && !reportData?.fileId) {
-      console.error("No valid file reference found for this report.");
-      return;
+      if (!reportData?.url && !reportData?.fileId) {
+        console.error("No valid file reference found for this report.");
+        return;
+      }
+
+      let viewUrl = reportData.url;
+      if (viewUrl?.includes("/view")) {
+        // already a view link, keep as is
+      } else if (reportData.fileId) {
+        // create a view URL instead of download
+        viewUrl = `${process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT}/storage/buckets/${process.env.NEXT_PUBLIC_BUCKET_ID}/files/${reportData.fileId}/view?project=${process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID}`;
+      }
+
+      if (!viewUrl) {
+        console.error("No valid file URL found.");
+        return;
+      }
+
+      //  Open file in a new browser tab
+      window.open(viewUrl, "_blank");
+      console.log("Opened file in a new tab!");
+    } catch (error) {
+      console.error("Error opening file:", error);
+      console.error("Failed to open file in new tab.");
     }
-
-    let viewUrl = reportData.url;
-    if (viewUrl?.includes("/view")) {
-      // already a view link, keep as is
-    } else if (reportData.fileId) {
-      // create a view URL instead of download
-      viewUrl = `${process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT}/storage/buckets/${process.env.NEXT_PUBLIC_BUCKET_ID}/files/${reportData.fileId}/view?project=${process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID}`;
-    }
-
-    if (!viewUrl) {
-      console.error("No valid file URL found.");
-      return;
-    }
-
-    //  Open file in a new browser tab
-    window.open(viewUrl, "_blank");
-    console.log("Opened file in a new tab!");
-  } catch (error) {
-    console.error("Error opening file:", error);
-    console.error("Failed to open file in new tab.");
-  }
-};
+  };
 
 
   return (
@@ -140,20 +141,22 @@ export function ViewReportsModal({ appointment }: Props) {
                   >
                     Download
                   </Button>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    onClick={() => handleDelete(i)}
-                    disabled={deleting === (r.fileName || String(i))}
-                  >
-                    <Trash2
-                      className={`h-4 w-4 ${
-                        deleting === (r.fileName || String(i))
-                          ? "text-gray-400 animate-pulse"
-                          : "text-red-500"
-                      }`}
-                    />
-                  </Button>
+                  {isAdmin && (
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => handleDelete(i)}
+                      disabled={deleting === (r.fileName || String(i))}
+                    >
+                      <Trash2
+                        className={`h-4 w-4 ${deleting === (r.fileName || String(i))
+                            ? "text-gray-400 animate-pulse"
+                            : "text-red-500"
+                          }`}
+                      />
+                    </Button>
+                  )}
+
                 </div>
               </li>
             ))}

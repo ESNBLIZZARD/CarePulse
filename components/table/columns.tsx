@@ -128,7 +128,7 @@ export const columns: ColumnDef<Appointment & { doctor: Doctor }>[] = [
 
               {/* If there are reports, show view modal */}
               {appointment.reports && appointment.reports.length > 0 && (
-                <ViewReportsModal appointment={appointment} />
+                <ViewReportsModal appointment={appointment} isAdmin/>
               )}
             </div>
           )}

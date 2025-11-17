@@ -34,6 +34,8 @@ interface GetRecentAppointmentOptions {
   endDate?: string;
 }
 
+
+// GET RECENT APPOINTMENT
 export const getRecentAppointmentList = async (
   options?: GetRecentAppointmentOptions
 ): Promise<AppointmentList | undefined> => {
@@ -162,7 +164,6 @@ export const getRecentAppointmentList = async (
     console.error("Error fetching recent appointments:", error);
   }
 };
-
 
 // CREATE APPOINTMENT
 export const createAppointment = async (
